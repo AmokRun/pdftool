@@ -978,17 +978,49 @@
   window.TESSERACT_AVAILABLE = false;
 </script>
 
-<!-- Try local libs first, fall back gracefully -->
+<!-- Bibliothèques locales — chargées séquentiellement -->
 <script>
 (function() {
-  // PDF.js
-  var s = document.createElement('script');
-  s.src = 'libs/pdfjs/pdf.min.js';
-  s.onerror = function() {
-    console.warn('PDF.js local not found. Some features may be limited.');
-  };
-  s.onload = function() { window.PDFJS_AVAILABLE = true; if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'libs/pdfjs/pdf.worker.min.js'; };
-  document.head.appendChild(s);
+  var libs = [
+    {
+      src: 'libs/pdfjs/pdf.min.js',
+      onload: function() {
+        window.PDFJS_AVAILABLE = true;
+        if (window.pdfjsLib) {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = 'libs/pdfjs/pdf.worker.min.js';
+        }
+        console.info('[PDF Toolbox] PDF.js chargé ✓');
+      },
+      onerror: function() { console.warn('[PDF Toolbox] PDF.js non trouvé — aperçu désactivé'); }
+    },
+    {
+      src: 'libs/pdflib/pdf-lib.min.js',
+      onload: function() {
+        window.PDFLIB_AVAILABLE = true;
+        console.info('[PDF Toolbox] pdf-lib chargé ✓');
+      },
+      onerror: function() { console.warn('[PDF Toolbox] pdf-lib non trouvé — modification PDF désactivée'); }
+    },
+    {
+      src: 'libs/tesseract/tesseract.min.js',
+      onload: function() {
+        window.TESSERACT_AVAILABLE = true;
+        console.info('[PDF Toolbox] Tesseract.js chargé ✓');
+      },
+      onerror: function() { console.warn('[PDF Toolbox] Tesseract.js non trouvé — OCR désactivé'); }
+    }
+  ];
+
+  // Charge les scripts dans l'ordre (séquentiellement)
+  function loadNext(i) {
+    if (i >= libs.length) return;
+    var s = document.createElement('script');
+    s.src = libs[i].src;
+    s.onload = function() { if (libs[i].onload) libs[i].onload(); loadNext(i + 1); };
+    s.onerror = function() { if (libs[i].onerror) libs[i].onerror(); loadNext(i + 1); };
+    document.head.appendChild(s);
+  }
+  loadNext(0);
 })();
 </script>
 

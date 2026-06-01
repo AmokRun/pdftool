@@ -228,7 +228,14 @@ const OCRModule = (() => {
         }
       };
 
-      const worker = await window.Tesseract.createWorker(lang, 1, { logger });
+      // Point Tesseract to local files
+      const workerOptions = {
+        logger,
+        workerPath: 'libs/tesseract/worker.min.js',
+        corePath:   'libs/tesseract/tesseract-core-lstm.wasm.js',
+        langPath:   'libs/tesseract/lang-data'
+      };
+      const worker = await window.Tesseract.createWorker(lang, 1, workerOptions);
       state.worker = worker;
 
       for (let i = 0; i < total; i++) {
