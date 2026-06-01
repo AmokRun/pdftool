@@ -1,0 +1,4 @@
+Placez ici le fichier pdf-lib :
+- pdf-lib.min.js
+
+Téléchargez depuis : https://unpkg.com/pdf-lib/dist/pdf-lib.min.js

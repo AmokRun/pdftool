@@ -1,0 +1,5 @@
+Placez ici les fichiers PDF.js :
+- pdf.min.js
+- pdf.worker.min.js
+
+Téléchargez depuis : https://mozilla.github.io/pdf.js/

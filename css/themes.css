@@ -1,0 +1,149 @@
+/* ============================================================
+   THEMES — Light & Dark
+   ============================================================ */
+
+:root {
+  --transition-speed: 0.2s;
+}
+
+/* ---- DARK THEME (default) ---- */
+[data-theme="dark"] {
+  --bg-primary:    #0f1117;
+  --bg-secondary:  #1a1d27;
+  --bg-tertiary:   #21253a;
+  --bg-card:       #1e2235;
+  --bg-hover:      #252a40;
+  --bg-active:     #2d3354;
+
+  --border-color:  #2e3352;
+  --border-focus:  #4f6ef7;
+
+  --text-primary:   #e8ecf4;
+  --text-secondary: #8892b0;
+  --text-muted:     #515d7a;
+  --text-inverse:   #0f1117;
+
+  --accent-primary:   #4f6ef7;
+  --accent-secondary: #7c5cbf;
+  --accent-success:   #2ecc71;
+  --accent-warning:   #f39c12;
+  --accent-danger:    #e74c3c;
+  --accent-info:      #3498db;
+
+  --btn-primary-bg:   #4f6ef7;
+  --btn-primary-text: #ffffff;
+  --btn-ghost-bg:     transparent;
+  --btn-ghost-text:   #8892b0;
+  --btn-ghost-hover:  #252a40;
+  --btn-success-bg:   #27ae60;
+  --btn-success-text: #ffffff;
+
+  --sidebar-bg:       #13162a;
+  --sidebar-border:   #1e2235;
+  --sidebar-text:     #8892b0;
+  --sidebar-active:   #4f6ef7;
+
+  --input-bg:         #252a40;
+  --input-border:     #2e3352;
+  --input-text:       #e8ecf4;
+  --input-placeholder:#515d7a;
+
+  --shadow-sm:   0 1px 4px rgba(0,0,0,0.4);
+  --shadow-md:   0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg:   0 8px 32px rgba(0,0,0,0.6);
+
+  --drop-zone-bg:     #1e2235;
+  --drop-zone-border: #2e3352;
+  --drop-zone-hover:  #252a40;
+
+  --scrollbar-track: #1a1d27;
+  --scrollbar-thumb: #2e3352;
+  --scrollbar-hover: #4f6ef7;
+
+  --badge-new-bg:   #4f6ef7;
+  --badge-beta-bg:  #7c5cbf;
+
+  --page-thumb-bg:   #1e2235;
+  --page-thumb-border: #2e3352;
+
+  --modal-overlay: rgba(0,0,0,0.7);
+  --modal-bg: #1a1d27;
+}
+
+/* ---- LIGHT THEME ---- */
+[data-theme="light"] {
+  --bg-primary:    #f0f2f8;
+  --bg-secondary:  #ffffff;
+  --bg-tertiary:   #f8f9fc;
+  --bg-card:       #ffffff;
+  --bg-hover:      #f0f2f8;
+  --bg-active:     #e5eafb;
+
+  --border-color:  #dde3ee;
+  --border-focus:  #4361ee;
+
+  --text-primary:   #1a2038;
+  --text-secondary: #4a5568;
+  --text-muted:     #94a3b8;
+  --text-inverse:   #ffffff;
+
+  --accent-primary:   #4361ee;
+  --accent-secondary: #7c3aed;
+  --accent-success:   #16a34a;
+  --accent-warning:   #d97706;
+  --accent-danger:    #dc2626;
+  --accent-info:      #2563eb;
+
+  --btn-primary-bg:   #4361ee;
+  --btn-primary-text: #ffffff;
+  --btn-ghost-bg:     transparent;
+  --btn-ghost-text:   #4a5568;
+  --btn-ghost-hover:  #f0f2f8;
+  --btn-success-bg:   #16a34a;
+  --btn-success-text: #ffffff;
+
+  --sidebar-bg:       #1a2038;
+  --sidebar-border:   #252d4a;
+  --sidebar-text:     #8892b0;
+  --sidebar-active:   #4f6ef7;
+
+  --input-bg:         #f8f9fc;
+  --input-border:     #dde3ee;
+  --input-text:       #1a2038;
+  --input-placeholder:#94a3b8;
+
+  --shadow-sm:   0 1px 4px rgba(0,0,0,0.08);
+  --shadow-md:   0 4px 16px rgba(0,0,0,0.12);
+  --shadow-lg:   0 8px 32px rgba(0,0,0,0.16);
+
+  --drop-zone-bg:     #f8f9fc;
+  --drop-zone-border: #dde3ee;
+  --drop-zone-hover:  #e5eafb;
+
+  --scrollbar-track: #f0f2f8;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-hover: #4361ee;
+
+  --badge-new-bg:   #4361ee;
+  --badge-beta-bg:  #7c3aed;
+
+  --page-thumb-bg:   #ffffff;
+  --page-thumb-border: #dde3ee;
+
+  --modal-overlay: rgba(0,0,0,0.5);
+  --modal-bg: #ffffff;
+}
+
+/* ---- Scrollbar ---- */
+* { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track); }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
+
+/* ---- Theme transition ---- */
+*, *::before, *::after {
+  transition: background-color var(--transition-speed) ease,
+              border-color var(--transition-speed) ease,
+              color var(--transition-speed) ease;
+}

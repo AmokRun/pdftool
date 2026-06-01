@@ -1,0 +1,7 @@
+Placez ici les fichiers Tesseract.js :
+- tesseract.min.js
+- worker.min.js
+- tesseract-core.wasm.js
+- lang-data/ (dossier avec les fichiers .traineddata.gz par langue)
+
+Téléchargez depuis : https://github.com/naptha/tesseract.js
