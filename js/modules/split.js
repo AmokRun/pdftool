@@ -368,6 +368,7 @@ const SplitModule = (() => {
 })();
 
 window.SplitModule = SplitModule;
+window.Module_split = SplitModule;
 
 
 /* ============================================================
@@ -753,5 +754,6 @@ const ReorderModule = (() => {
 })();
 
 window.ReorderModule = ReorderModule;
+window.Module_reorder = ReorderModule;
 
 // Module initialized

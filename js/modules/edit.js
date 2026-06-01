@@ -173,13 +173,17 @@ const EditModule = (() => {
           const reader = new FileReader();
           reader.onload = (ev) => {
             const rect = canvas.getBoundingClientRect();
-            annotations.push({
-              type: 'image', src: ev.target.result,
-              x: e.clientX - rect.left - 50,
-              y: e.clientY - rect.top - 50,
-              width: 100, height: 100, page: currentPage
-            });
-            redrawAnnotations();
+            const img = new Image();
+            img.onload = () => {
+              annotations.push({
+                type: 'image', src: ev.target.result, _img: img,
+                x: e.clientX - rect.left - 50,
+                y: e.clientY - rect.top - 50,
+                width: 100, height: 100, page: currentPage
+              });
+              redrawAnnotations();
+            };
+            img.src = ev.target.result;
           };
           reader.readAsDataURL(input.files[0]);
         };
@@ -268,9 +272,9 @@ const EditModule = (() => {
         overlayCtx.lineWidth = 2;
         overlayCtx.strokeText(a.text, a.x, a.y);
       } else if (a.type === 'image') {
-        const img = new Image();
-        img.src = a.src;
-        img.onload = () => overlayCtx.drawImage(img, a.x, a.y, a.width, a.height);
+        if (a._img) {
+          overlayCtx.drawImage(a._img, a.x, a.y, a.width, a.height);
+        }
       }
     });
   }
@@ -294,7 +298,9 @@ const EditModule = (() => {
       UI.showLoading('edit-canvas-area', 'Sauvegarde...');
       const { PDFDocument, rgb, StandardFonts } = PDFLib;
       const pdfLibDoc = await PDFDocument.load(currentBuffer);
-      const font = await pdfLibDoc.embedFont(StandardFonts.Helvetica);
+      let font;
+      try { font = await pdfLibDoc.embedFont(StandardFonts.Helvetica); }
+      catch(e) { font = await pdfLibDoc.embedFont(StandardFonts.TimesRoman); }
 
       for (const ann of annotations) {
         if (ann.page < 1 || ann.page > pdfLibDoc.getPageCount()) continue;
@@ -364,5 +370,4 @@ const EditModule = (() => {
 
 window.EditModule = EditModule;
 window.Module_edit = EditModule;
-document.addEventListener('DOMContentLoaded', EditModule.init);
 // Module initialized

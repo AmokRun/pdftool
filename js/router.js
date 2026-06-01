@@ -8,24 +8,10 @@ const Router = (() => {
   let currentRoute = null;
   let _beforeEach = null;
 
-  // Map of route -> module path for lazy loading
-  const MODULE_MAP = {
-    merge:      'js/modules/merge.js',
-    split:      'js/modules/split.js',
-    reorder:    'js/modules/split.js',
-    compress:   'js/modules/compress.js',
-    convert:    'js/modules/convert.js',
-    ocr:        'js/modules/ocr.js',
-    edit:       'js/modules/edit.js',
-    annotate:   'js/modules/annotate.js',
-    signature:  'js/modules/signature.js',
-    watermark:  'js/modules/watermark.js',
-    pagenumber: 'js/modules/watermark.js',
-    compare:    'js/modules/compare.js',
-    metadata:   'js/modules/metadata.js',
-    bookmarks:  'js/modules/bookmarks.js',
-    forms:      'js/modules/forms.js',
-    ai:         'js/modules/ai.js'
+  // Small alias map only for routes whose path differs from their module file name
+  const MODULE_ALIASES = {
+    reorder:    'split',
+    pagenumber: 'watermark'
   };
 
   const loadedModules = new Set();
@@ -67,11 +53,15 @@ const Router = (() => {
     currentRoute = path;
 
     // Lazy load module if needed
-    if (MODULE_MAP[path] && !loadedModules.has(path)) {
-      loadedModules.add(path);
+    // Use alias to find the correct file (e.g. reorder -> split.js, pagenumber -> watermark.js)
+    const moduleName = MODULE_ALIASES[path] || path;
+    const moduleSrc = 'js/modules/' + moduleName + '.js';
+
+    if (!loadedModules.has(moduleName)) {
+      loadedModules.add(moduleName);
       try {
         const script = document.createElement('script');
-        script.src = MODULE_MAP[path];
+        script.src = moduleSrc;
         script.onload = () => {
           // Fire module init if available
           const mod = window['Module_' + path];

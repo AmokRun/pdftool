@@ -224,9 +224,9 @@ const CompressModule = (() => {
 
         // Create new page with same dimensions as original
         const newPage = newDoc.addPage([pdfW, pdfH]);
-        if (pageRotation) {
-          const { degrees } = window.PDFLib;
-          newPage.setRotation(degrees(pageRotation));
+        if (pageRotation && typeof pageRotation === 'number') {
+          const rotObj = window.PDFLib?.degrees?.(pageRotation);
+          if (rotObj) newPage.setRotation(rotObj);
         }
 
         // Draw image to fill the page
@@ -377,5 +377,6 @@ const CompressModule = (() => {
 })();
 
 window.CompressModule = CompressModule;
+window.Module_compress = CompressModule;
 
 // Module initialized

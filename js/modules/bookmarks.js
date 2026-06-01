@@ -408,9 +408,4 @@ const BookmarksModule = (() => {
 })();
 
 window.BookmarksModule = BookmarksModule;
-
-document.addEventListener('DOMContentLoaded', () => {
-  if (window.Router) {
-    Router.register('bookmarks', () => BookmarksModule.init());
-  }
-});
+window.Module_bookmarks = BookmarksModule;

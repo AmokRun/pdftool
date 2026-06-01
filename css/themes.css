@@ -1,149 +1,199 @@
 /* ============================================================
-   THEMES — Light & Dark
+   THEMES — Apple macOS Ventura/Sonoma Design System
+   Light & Dark
    ============================================================ */
 
+/* ---- Design tokens (shared) ---- */
 :root {
-  --transition-speed: 0.2s;
+  --radius-sm:  8px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-xl:  20px;
+
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  --transition: 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  --font-body:    -apple-system, 'SF Pro Text',    BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-display: -apple-system, 'SF Pro Display', BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono:    'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
 }
 
-/* ---- DARK THEME (default) ---- */
+/* ============================================================
+   DARK THEME (default)
+   ============================================================ */
 [data-theme="dark"] {
-  --bg-primary:    #0f1117;
-  --bg-secondary:  #1a1d27;
-  --bg-tertiary:   #21253a;
-  --bg-card:       #1e2235;
-  --bg-hover:      #252a40;
-  --bg-active:     #2d3354;
+  /* Backgrounds */
+  --bg-primary:   #0D0D0F;
+  --bg-secondary: #1C1C1E;
+  --bg-tertiary:  #2C2C2E;
+  --bg-card:      #1C1C1E;
+  --bg-glass:     rgba(28, 28, 30, 0.85);
 
-  --border-color:  #2e3352;
-  --border-focus:  #4f6ef7;
+  /* Borders */
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-focus: #0071E3;
 
-  --text-primary:   #e8ecf4;
-  --text-secondary: #8892b0;
-  --text-muted:     #515d7a;
-  --text-inverse:   #0f1117;
+  /* Text */
+  --text-primary:   #F5F5F7;
+  --text-secondary: rgba(235, 235, 245, 0.6);
+  --text-muted:     rgba(235, 235, 245, 0.3);
+  --text-inverse:   #1D1D1F;
 
-  --accent-primary:   #4f6ef7;
-  --accent-secondary: #7c5cbf;
-  --accent-success:   #2ecc71;
-  --accent-warning:   #f39c12;
-  --accent-danger:    #e74c3c;
-  --accent-info:      #3498db;
+  /* Accents */
+  --accent-primary:   #0071E3;
+  --accent-secondary: #5856D6;
+  --accent-success:   #30D158;
+  --accent-warning:   #FF9F0A;
+  --accent-danger:    #FF453A;
+  --accent-info:      #64D2FF;
 
-  --btn-primary-bg:   #4f6ef7;
-  --btn-primary-text: #ffffff;
-  --btn-ghost-bg:     transparent;
-  --btn-ghost-text:   #8892b0;
-  --btn-ghost-hover:  #252a40;
-  --btn-success-bg:   #27ae60;
-  --btn-success-text: #ffffff;
+  /* Sidebar (always dark, even in light mode) */
+  --sidebar-bg:     rgba(18, 18, 20, 0.95);
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-text:   rgba(235, 235, 245, 0.55);
+  --sidebar-active: #4DA3FF;
 
-  --sidebar-bg:       #13162a;
-  --sidebar-border:   #1e2235;
-  --sidebar-text:     #8892b0;
-  --sidebar-active:   #4f6ef7;
+  /* Inputs */
+  --input-bg:          rgba(255, 255, 255, 0.06);
+  --input-border:      rgba(255, 255, 255, 0.10);
+  --input-text:        #F5F5F7;
+  --input-placeholder: rgba(235, 235, 245, 0.3);
 
-  --input-bg:         #252a40;
-  --input-border:     #2e3352;
-  --input-text:       #e8ecf4;
-  --input-placeholder:#515d7a;
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.40);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.50);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.60);
 
-  --shadow-sm:   0 1px 4px rgba(0,0,0,0.4);
-  --shadow-md:   0 4px 16px rgba(0,0,0,0.5);
-  --shadow-lg:   0 8px 32px rgba(0,0,0,0.6);
+  /* Drop zone */
+  --drop-zone-bg:     rgba(255, 255, 255, 0.02);
+  --drop-zone-border: rgba(255, 255, 255, 0.12);
 
-  --drop-zone-bg:     #1e2235;
-  --drop-zone-border: #2e3352;
-  --drop-zone-hover:  #252a40;
+  /* Scrollbar */
+  --scrollbar-track: #1C1C1E;
+  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+  --scrollbar-hover: rgba(255, 255, 255, 0.28);
 
-  --scrollbar-track: #1a1d27;
-  --scrollbar-thumb: #2e3352;
-  --scrollbar-hover: #4f6ef7;
+  /* Modal */
+  --modal-overlay: rgba(0, 0, 0, 0.60);
+  --modal-bg:      #1C1C1E;
 
-  --badge-new-bg:   #4f6ef7;
-  --badge-beta-bg:  #7c5cbf;
-
-  --page-thumb-bg:   #1e2235;
-  --page-thumb-border: #2e3352;
-
-  --modal-overlay: rgba(0,0,0,0.7);
-  --modal-bg: #1a1d27;
+  /* Misc */
+  --page-thumb-bg:     #2C2C2E;
+  --page-thumb-border: rgba(255, 255, 255, 0.08);
+  --bg-hover:          rgba(255, 255, 255, 0.06);
+  --bg-active:         rgba(0, 113, 227, 0.15);
 }
 
-/* ---- LIGHT THEME ---- */
+/* ============================================================
+   LIGHT THEME
+   ============================================================ */
 [data-theme="light"] {
-  --bg-primary:    #f0f2f8;
-  --bg-secondary:  #ffffff;
-  --bg-tertiary:   #f8f9fc;
-  --bg-card:       #ffffff;
-  --bg-hover:      #f0f2f8;
-  --bg-active:     #e5eafb;
+  /* Backgrounds */
+  --bg-primary:   #F5F5F7;
+  --bg-secondary: #FFFFFF;
+  --bg-tertiary:  #F2F2F7;
+  --bg-card:      #FFFFFF;
+  --bg-glass:     rgba(255, 255, 255, 0.75);
 
-  --border-color:  #dde3ee;
-  --border-focus:  #4361ee;
+  /* Borders */
+  --border-color: rgba(0, 0, 0, 0.08);
+  --border-focus: #0066CC;
 
-  --text-primary:   #1a2038;
-  --text-secondary: #4a5568;
-  --text-muted:     #94a3b8;
-  --text-inverse:   #ffffff;
+  /* Text */
+  --text-primary:   #1D1D1F;
+  --text-secondary: rgba(60, 60, 67, 0.6);
+  --text-muted:     rgba(60, 60, 67, 0.3);
+  --text-inverse:   #FFFFFF;
 
-  --accent-primary:   #4361ee;
-  --accent-secondary: #7c3aed;
-  --accent-success:   #16a34a;
-  --accent-warning:   #d97706;
-  --accent-danger:    #dc2626;
-  --accent-info:      #2563eb;
+  /* Accents */
+  --accent-primary:   #0066CC;
+  --accent-secondary: #5856D6;
+  --accent-success:   #28A745;
+  --accent-warning:   #FF9500;
+  --accent-danger:    #FF3B30;
+  --accent-info:      #007AFF;
 
-  --btn-primary-bg:   #4361ee;
-  --btn-primary-text: #ffffff;
-  --btn-ghost-bg:     transparent;
-  --btn-ghost-text:   #4a5568;
-  --btn-ghost-hover:  #f0f2f8;
-  --btn-success-bg:   #16a34a;
-  --btn-success-text: #ffffff;
+  /* Sidebar stays dark in light mode (macOS style) */
+  --sidebar-bg:     #1C1C1E;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-text:   rgba(235, 235, 245, 0.55);
+  --sidebar-active: #4DA3FF;
 
-  --sidebar-bg:       #1a2038;
-  --sidebar-border:   #252d4a;
-  --sidebar-text:     #8892b0;
-  --sidebar-active:   #4f6ef7;
+  /* Inputs */
+  --input-bg:          #FFFFFF;
+  --input-border:      rgba(0, 0, 0, 0.12);
+  --input-text:        #1D1D1F;
+  --input-placeholder: rgba(60, 60, 67, 0.3);
 
-  --input-bg:         #f8f9fc;
-  --input-border:     #dde3ee;
-  --input-text:       #1a2038;
-  --input-placeholder:#94a3b8;
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.10);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.16);
 
-  --shadow-sm:   0 1px 4px rgba(0,0,0,0.08);
-  --shadow-md:   0 4px 16px rgba(0,0,0,0.12);
-  --shadow-lg:   0 8px 32px rgba(0,0,0,0.16);
+  /* Drop zone */
+  --drop-zone-bg:     rgba(0, 0, 0, 0.02);
+  --drop-zone-border: rgba(0, 0, 0, 0.12);
 
-  --drop-zone-bg:     #f8f9fc;
-  --drop-zone-border: #dde3ee;
-  --drop-zone-hover:  #e5eafb;
+  /* Scrollbar */
+  --scrollbar-track: #F2F2F7;
+  --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+  --scrollbar-hover: rgba(0, 0, 0, 0.28);
 
-  --scrollbar-track: #f0f2f8;
-  --scrollbar-thumb: #cbd5e1;
-  --scrollbar-hover: #4361ee;
+  /* Modal */
+  --modal-overlay: rgba(0, 0, 0, 0.40);
+  --modal-bg:      #FFFFFF;
 
-  --badge-new-bg:   #4361ee;
-  --badge-beta-bg:  #7c3aed;
-
-  --page-thumb-bg:   #ffffff;
-  --page-thumb-border: #dde3ee;
-
-  --modal-overlay: rgba(0,0,0,0.5);
-  --modal-bg: #ffffff;
+  /* Misc */
+  --page-thumb-bg:     #FFFFFF;
+  --page-thumb-border: rgba(0, 0, 0, 0.08);
+  --bg-hover:          rgba(0, 0, 0, 0.04);
+  --bg-active:         rgba(0, 102, 204, 0.10);
 }
 
-/* ---- Scrollbar ---- */
-* { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track); }
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--scrollbar-track); }
-::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
 
-/* ---- Theme transition ---- */
-*, *::before, *::after {
-  transition: background-color var(--transition-speed) ease,
-              border-color var(--transition-speed) ease,
-              color var(--transition-speed) ease;
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track);
+}
+
+/* ============================================================
+   THEME TRANSITION
+   Scope to just bg/border/color to avoid thrashing everything
+   ============================================================ */
+*,
+*::before,
+*::after {
+  transition:
+    background-color var(--transition),
+    border-color     var(--transition),
+    color            var(--transition);
 }

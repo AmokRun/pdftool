@@ -49,10 +49,22 @@ const SignatureModule = (() => {
     const canvas = qs('signature-canvas');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    ctx.strokeStyle = state.drawColor;
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+
+    let strokes = [];        // completed strokes
+    let currentStroke = [];  // stroke being drawn
+    let isDrawing = false;
+
+    // Store on state so clearDrawCanvas can access
+    state._sigStrokes = strokes;
+    state._sigCurrentStroke = currentStroke;
+    state._sigIsDrawing = () => isDrawing;
+    state._sigRedraw = redrawSignature;
+    state._sigClear = () => {
+      strokes.length = 0;
+      currentStroke.length = 0;
+      isDrawing = false;
+      redrawSignature();
+    };
 
     function getPos(e) {
       const rect = canvas.getBoundingClientRect();
@@ -65,60 +77,86 @@ const SignatureModule = (() => {
       };
     }
 
-    function startDraw(e) {
-      e.preventDefault();
-      state.isDrawing = true;
-      const pos = getPos(e);
-      state.drawPoints = [pos];
-      ctx.beginPath();
-      ctx.moveTo(pos.x, pos.y);
-    }
-
-    function draw(e) {
-      if (!state.isDrawing) return;
-      e.preventDefault();
-      const pos = getPos(e);
-      state.drawPoints.push(pos);
-
-      // Smooth bezier curve
-      ctx.strokeStyle = state.drawColor;
-      const pts = state.drawPoints;
-      if (pts.length < 3) {
-        ctx.lineTo(pos.x, pos.y);
+    function redrawSignature() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const allStrokes = currentStroke.length ? strokes.concat([currentStroke]) : strokes;
+      allStrokes.forEach(stroke => {
+        if (stroke.length < 2) return;
+        ctx.beginPath();
+        ctx.moveTo(stroke[0].x, stroke[0].y);
+        for (let i = 1; i < stroke.length - 1; i++) {
+          const mx = (stroke[i].x + stroke[i+1].x) / 2;
+          const my = (stroke[i].y + stroke[i+1].y) / 2;
+          ctx.quadraticCurveTo(stroke[i].x, stroke[i].y, mx, my);
+        }
+        ctx.lineTo(stroke[stroke.length-1].x, stroke[stroke.length-1].y);
+        ctx.strokeStyle = state.drawColor;
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
         ctx.stroke();
-        return;
-      }
-      // Re-draw last segment with bezier
-      const i = pts.length - 1;
-      const cp1x = pts[i-1].x;
-      const cp1y = pts[i-1].y;
-      ctx.bezierCurveTo(cp1x, cp1y, (cp1x + pos.x)/2, (cp1y + pos.y)/2, pos.x, pos.y);
-      ctx.stroke();
-    }
-
-    function endDraw(e) {
-      if (!state.isDrawing) return;
-      e.preventDefault();
-      state.isDrawing = false;
-      ctx.closePath();
+      });
       updateApplyBtn();
     }
 
-    canvas.addEventListener('mousedown', startDraw);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', endDraw);
-    canvas.addEventListener('mouseleave', endDraw);
-    canvas.addEventListener('touchstart', startDraw, { passive: false });
-    canvas.addEventListener('touchmove', draw, { passive: false });
-    canvas.addEventListener('touchend', endDraw, { passive: false });
+    canvas.addEventListener('mousedown', e => {
+      e.preventDefault();
+      isDrawing = true;
+      currentStroke.length = 0;
+      currentStroke.push(getPos(e));
+    });
+    canvas.addEventListener('mousemove', e => {
+      if (!isDrawing) return;
+      e.preventDefault();
+      currentStroke.push(getPos(e));
+      redrawSignature();
+    });
+    canvas.addEventListener('mouseup', e => {
+      if (!isDrawing) return;
+      e.preventDefault();
+      if (currentStroke.length) strokes.push([...currentStroke]);
+      currentStroke.length = 0;
+      isDrawing = false;
+      redrawSignature();
+    });
+    canvas.addEventListener('mouseleave', e => {
+      if (!isDrawing) return;
+      if (currentStroke.length) strokes.push([...currentStroke]);
+      currentStroke.length = 0;
+      isDrawing = false;
+      redrawSignature();
+    });
+    canvas.addEventListener('touchstart', e => {
+      e.preventDefault();
+      isDrawing = true;
+      currentStroke.length = 0;
+      currentStroke.push(getPos(e));
+    }, { passive: false });
+    canvas.addEventListener('touchmove', e => {
+      if (!isDrawing) return;
+      e.preventDefault();
+      currentStroke.push(getPos(e));
+      redrawSignature();
+    }, { passive: false });
+    canvas.addEventListener('touchend', e => {
+      if (!isDrawing) return;
+      e.preventDefault();
+      if (currentStroke.length) strokes.push([...currentStroke]);
+      currentStroke.length = 0;
+      isDrawing = false;
+      redrawSignature();
+    }, { passive: false });
   }
 
   function clearDrawCanvas() {
-    const canvas = qs('signature-canvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    state.drawPoints = [];
+    if (state._sigClear) {
+      state._sigClear();
+    } else {
+      const canvas = qs('signature-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
     updateApplyBtn();
   }
 
@@ -145,8 +183,7 @@ const SignatureModule = (() => {
     if (!btn) return;
     let hasSignature = false;
     if (state.currentTab === 'draw') {
-      const canvas = qs('signature-canvas');
-      hasSignature = canvas && state.drawPoints.length > 3;
+      hasSignature = !!(state._sigStrokes && state._sigStrokes.length > 0);
     } else if (state.currentTab === 'upload') {
       hasSignature = !!(qs('sig-preview-img')?.src && !qs('sig-preview-img').classList.contains('hidden'));
     } else if (state.currentTab === 'type') {
@@ -282,17 +319,28 @@ const SignatureModule = (() => {
     });
   }
 
-  function redrawPlacements(pageNum) {
+  const _imgCache = new Map();
+  function getImage(url) {
+    if (_imgCache.has(url)) return Promise.resolve(_imgCache.get(url));
+    return new Promise(r => {
+      const i = new Image();
+      i.onload = () => { _imgCache.set(url, i); r(i); };
+      i.src = url;
+    });
+  }
+
+  async function redrawPlacements(pageNum) {
     const canvas = state.sigOverlayCanvas;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const sigs = state.placedSignatures.filter(s => s.pageNum === pageNum);
-    sigs.forEach(sig => {
-      const img = new Image();
-      img.onload = () => ctx.drawImage(img, sig.x - sig.w/2, sig.y - sig.h/2, sig.w, sig.h);
-      img.src = sig.dataUrl;
-    });
+    for (const sig of sigs) {
+      const img = await getImage(sig.dataUrl);
+      ctx.globalAlpha = 0.9;
+      ctx.drawImage(img, sig.x - sig.w/2, sig.y - sig.h/2, sig.w, sig.h);
+      ctx.globalAlpha = 1;
+    }
   }
 
   // ---- Load PDF ----
@@ -460,9 +508,4 @@ const SignatureModule = (() => {
 })();
 
 window.SignatureModule = SignatureModule;
-
-document.addEventListener('DOMContentLoaded', () => {
-  if (window.Router) {
-    Router.register('signature', () => SignatureModule.init());
-  }
-});
+window.Module_signature = SignatureModule;

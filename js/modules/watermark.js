@@ -312,6 +312,7 @@ const WatermarkModule = (() => {
 })();
 
 window.WatermarkModule = WatermarkModule;
+window.Module_watermark = WatermarkModule;
 
 /* ------------------------------------------------------------------ */
 /*  PagenumberModule                                                    */
@@ -536,11 +537,6 @@ const PagenumberModule = (() => {
 })();
 
 window.PagenumberModule = PagenumberModule;
+window.Module_pagenumber = PagenumberModule;
 
-// Router integration: init both when the view activates
-document.addEventListener('DOMContentLoaded', () => {
-  if (window.Router) {
-    Router.register('watermark',  () => WatermarkModule.init());
-    Router.register('pagenumber', () => PagenumberModule.init());
-  }
-});
+// Module initialized

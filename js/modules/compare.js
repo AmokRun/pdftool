@@ -362,9 +362,4 @@ const CompareModule = (() => {
 })();
 
 window.CompareModule = CompareModule;
-
-document.addEventListener('DOMContentLoaded', () => {
-  if (window.Router) {
-    Router.register('compare', () => CompareModule.init());
-  }
-});
+window.Module_compare = CompareModule;

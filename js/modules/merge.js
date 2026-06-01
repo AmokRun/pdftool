@@ -298,5 +298,6 @@ const MergeModule = (() => {
 })();
 
 window.MergeModule = MergeModule;
+window.Module_merge = MergeModule;
 
 // Module initialized

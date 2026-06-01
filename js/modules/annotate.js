@@ -95,6 +95,12 @@ const AnnotateModule = (() => {
     await page.render({ canvasContext: base.getContext('2d'), viewport }).promise;
     setupEvents(overlayCanvas, viewport);
     redraw();
+
+    // Re-apply tool highlight after render
+    document.querySelectorAll('#annotate-toolbar .edit-tool-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.tool === currentTool);
+    });
+    if (overlayCanvas) overlayCanvas.style.cursor = 'crosshair';
   }
 
   function setupEvents(canvas, viewport) {
@@ -326,5 +332,4 @@ const AnnotateModule = (() => {
 
 window.AnnotateModule = AnnotateModule;
 window.Module_annotate = AnnotateModule;
-document.addEventListener('DOMContentLoaded', AnnotateModule.init);
 // Module initialized
