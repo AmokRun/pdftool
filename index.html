@@ -572,21 +572,34 @@
               <button class="btn btn-primary btn-sm" id="annotate-add-btn">Ouvrir un PDF</button>
               <input type="file" id="annotate-file-input" accept=".pdf" style="display:none" />
             </div>
-            <div id="annotate-toolbar" style="display:none">
+            <div id="annotate-toolbar" style="display:none;flex-direction:column;gap:10px;">
+              <p class="text-xs text-muted tracking-wide uppercase">Sélection</p>
+              <div class="tool-group">
+                <button class="edit-tool-btn" data-tool="select" title="Sélectionner / Déplacer">↖</button>
+              </div>
+              <p class="text-xs text-muted tracking-wide uppercase">Annotations texte</p>
               <div class="tool-group">
                 <button class="edit-tool-btn active" data-tool="highlight" title="Surligner">▬</button>
-                <button class="edit-tool-btn" data-tool="comment" title="Commentaire">💬</button>
                 <button class="edit-tool-btn" data-tool="underline" title="Souligner">U̲</button>
                 <button class="edit-tool-btn" data-tool="strikethrough" title="Barrer">S̶</button>
+                <button class="edit-tool-btn" data-tool="comment" title="Commentaire">💬</button>
+              </div>
+              <p class="text-xs text-muted tracking-wide uppercase">Formes</p>
+              <div class="tool-group">
                 <button class="edit-tool-btn" data-tool="rect" title="Rectangle">□</button>
                 <button class="edit-tool-btn" data-tool="circle" title="Cercle">○</button>
                 <button class="edit-tool-btn" data-tool="arrow" title="Flèche">→</button>
                 <button class="edit-tool-btn" data-tool="freehand" title="Dessin libre">✍</button>
               </div>
+              <div class="divider"></div>
               <label>Couleur</label>
               <input type="color" id="annotate-color" value="#FFD700" class="color-input" />
-              <label>Opacité</label>
+              <label>Opacité — <span id="annotate-opacity-val">50%</span></label>
               <input type="range" id="annotate-opacity" min="10" max="100" value="50" class="range-input" />
+              <button class="btn btn-danger btn-sm" id="annotate-del-selected" style="display:none">
+                ✕ Supprimer la sélection
+              </button>
+              <div class="divider"></div>
               <div id="annotate-list" class="annotations-list"></div>
               <button class="btn btn-success btn-full" id="annotate-save-btn" style="display:none">
                 Sauvegarder avec annotations

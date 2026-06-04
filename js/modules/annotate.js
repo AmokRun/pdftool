@@ -11,9 +11,15 @@ const AnnotateModule = (() => {
   let currentTool = 'highlight';
   let annotations = [];
   let scale = 1.5;
+  // Drawing state
   let isDrawing = false;
   let startPoint = null;
   let drawPath = [];
+  // Selection / drag state
+  let selectedAnnotIndex = -1;
+  let isDragging = false;
+  let dragPrevPos = null;
+  // Canvas refs
   let overlayCanvas = null;
   let overlayCtx = null;
 
@@ -26,12 +32,22 @@ const AnnotateModule = (() => {
     if (input) input.onchange = () => { if (input.files[0]) loadFile(input.files[0]); };
     if (dropZone) UI.setupDropZone(dropZone, f => { if (f[0]) loadFile(f[0]); }, ['.pdf']);
 
-    document.querySelectorAll('.edit-tool-btn[data-tool]').forEach(b => {
+    document.querySelectorAll('#annotate-toolbar .edit-tool-btn[data-tool]').forEach(b => {
       b.addEventListener('click', () => selectTool(b.dataset.tool, b));
     });
 
     const saveBtn = document.getElementById('annotate-save-btn');
     if (saveBtn) saveBtn.onclick = save;
+
+    const delSelectedBtn = document.getElementById('annotate-del-selected');
+    if (delSelectedBtn) delSelectedBtn.onclick = deleteSelected;
+
+    const opacityEl = document.getElementById('annotate-opacity');
+    const opacityValEl = document.getElementById('annotate-opacity-val');
+    if (opacityEl && opacityValEl) {
+      opacityEl.oninput = () => { opacityValEl.textContent = opacityEl.value + '%'; };
+    }
+
     _autoLoad();
   }
 
@@ -44,6 +60,7 @@ const AnnotateModule = (() => {
     }
     currentFile = file;
     annotations = [];
+    selectedAnnotIndex = -1;
     const ab = await file.arrayBuffer();
     pdfDoc = await pdfjsLib.getDocument({ data: new Uint8Array(ab) }).promise;
     totalPages = pdfDoc.numPages;
@@ -56,6 +73,7 @@ const AnnotateModule = (() => {
   }
 
   async function renderPage(n) {
+    selectedAnnotIndex = -1;
     const area = document.getElementById('annotate-canvas-area');
     area.innerHTML = '';
     const page = await pdfDoc.getPage(n);
@@ -95,26 +113,51 @@ const AnnotateModule = (() => {
     });
 
     await page.render({ canvasContext: base.getContext('2d'), viewport }).promise;
-    setupEvents(overlayCanvas, viewport);
+    setupEvents(overlayCanvas);
     redraw();
 
-    // Re-apply tool highlight after render
     document.querySelectorAll('#annotate-toolbar .edit-tool-btn').forEach(b => {
       b.classList.toggle('active', b.dataset.tool === currentTool);
     });
-    if (overlayCanvas) overlayCanvas.style.cursor = 'crosshair';
+    overlayCanvas.style.cursor = currentTool === 'select' ? 'default' : 'crosshair';
   }
 
-  function setupEvents(canvas, viewport) {
+  function setupEvents(canvas) {
     canvas.addEventListener('mousedown', e => {
       const { x, y } = getPos(e, canvas);
+
+      if (currentTool === 'select') {
+        const idx = hitTest(x, y);
+        selectedAnnotIndex = idx;
+        isDragging = idx >= 0;
+        dragPrevPos = { x, y };
+        redraw();
+        updateList();
+        return;
+      }
+
       isDrawing = true;
       startPoint = { x, y };
       if (currentTool === 'freehand') drawPath = [{ x, y }];
     });
+
     canvas.addEventListener('mousemove', e => {
-      if (!isDrawing) return;
       const { x, y } = getPos(e, canvas);
+
+      if (currentTool === 'select') {
+        if (isDragging && selectedAnnotIndex >= 0) {
+          const dx = x - dragPrevPos.x;
+          const dy = y - dragPrevPos.y;
+          dragPrevPos = { x, y };
+          moveAnnotation(selectedAnnotIndex, dx, dy);
+          redraw();
+        } else {
+          canvas.style.cursor = hitTest(x, y) >= 0 ? 'move' : 'default';
+        }
+        return;
+      }
+
+      if (!isDrawing) return;
       if (currentTool === 'freehand') {
         drawPath.push({ x, y });
         redraw();
@@ -124,7 +167,14 @@ const AnnotateModule = (() => {
         drawLiveShape({ x, y });
       }
     });
+
     canvas.addEventListener('mouseup', e => {
+      if (currentTool === 'select') {
+        isDragging = false;
+        dragPrevPos = null;
+        return;
+      }
+
       if (!isDrawing) return;
       isDrawing = false;
       const { x, y } = getPos(e, canvas);
@@ -133,6 +183,7 @@ const AnnotateModule = (() => {
       const ann = { type: currentTool, color, opacity, page: currentPage };
 
       if (currentTool === 'freehand') {
+        if (drawPath.length < 2) return;
         ann.path = [...drawPath];
         drawPath = [];
       } else if (['rect', 'circle', 'arrow', 'underline', 'strikethrough', 'highlight'].includes(currentTool)) {
@@ -148,6 +199,117 @@ const AnnotateModule = (() => {
       redraw();
       updateList();
     });
+
+    canvas.addEventListener('mouseleave', () => {
+      if (isDragging) { isDragging = false; dragPrevPos = null; }
+    });
+  }
+
+  // ---- Hit test ----
+  function hitTest(x, y) {
+    const TOL = 8;
+    const pageAnns = annotations
+      .map((a, i) => ({ a, i }))
+      .filter(({ a }) => a.page === currentPage)
+      .reverse();
+    for (const { a, i } of pageAnns) {
+      if (hitsAnnotation(x, y, a, TOL)) return i;
+    }
+    return -1;
+  }
+
+  function hitsAnnotation(x, y, a, tol) {
+    switch (a.type) {
+      case 'highlight':
+        return inRect(x, y, Math.min(a.x1,a.x2), a.y1-14, Math.abs(a.x2-a.x1), 16, tol);
+      case 'underline':
+        return inRect(x, y, Math.min(a.x1,a.x2), a.y1-4, Math.abs(a.x2-a.x1), 8, tol);
+      case 'strikethrough': {
+        const midY = (a.y1+a.y2)/2;
+        return inRect(x, y, Math.min(a.x1,a.x2), midY-4, Math.abs(a.x2-a.x1), 8, tol);
+      }
+      case 'rect':
+      case 'circle':
+      case 'arrow':
+        return inRect(x, y, Math.min(a.x1,a.x2), Math.min(a.y1,a.y2), Math.abs(a.x2-a.x1), Math.abs(a.y2-a.y1), tol);
+      case 'comment':
+        return inRect(x, y, a.x, a.y-14, 16, 16, tol);
+      case 'freehand': {
+        if (!a.path || !a.path.length) return false;
+        const bb = pathBBox(a.path);
+        return inRect(x, y, bb.x, bb.y, bb.w, bb.h, tol);
+      }
+      default: return false;
+    }
+  }
+
+  function inRect(x, y, rx, ry, rw, rh, tol) {
+    return x >= rx-tol && x <= rx+rw+tol && y >= ry-tol && y <= ry+rh+tol;
+  }
+
+  function pathBBox(path) {
+    const xs = path.map(p => p.x), ys = path.map(p => p.y);
+    const x = Math.min(...xs), y = Math.min(...ys);
+    return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+  }
+
+  // ---- Move annotation ----
+  function moveAnnotation(idx, dx, dy) {
+    const a = annotations[idx];
+    if (!a) return;
+    if (a.type === 'comment') {
+      a.x += dx; a.y += dy;
+    } else if (a.type === 'freehand') {
+      a.path = a.path.map(p => ({ x: p.x + dx, y: p.y + dy }));
+    } else {
+      a.x1 += dx; a.y1 += dy; a.x2 += dx; a.y2 += dy;
+    }
+  }
+
+  // ---- Selection indicator ----
+  function drawSelectionIndicator(a) {
+    const ctx = overlayCtx;
+    ctx.save();
+    ctx.strokeStyle = '#0071E3';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 3]);
+    ctx.globalAlpha = 0.9;
+    const tol = 5;
+    let rx, ry, rw, rh;
+
+    if (a.type === 'comment') {
+      rx = a.x - tol; ry = a.y - 14 - tol; rw = 16 + tol*2; rh = 16 + tol*2;
+    } else if (a.type === 'freehand' && a.path.length) {
+      const bb = pathBBox(a.path);
+      rx = bb.x - tol; ry = bb.y - tol; rw = bb.w + tol*2; rh = bb.h + tol*2;
+    } else if (a.type === 'highlight') {
+      rx = Math.min(a.x1,a.x2) - tol; ry = a.y1 - 14 - tol;
+      rw = Math.abs(a.x2-a.x1) + tol*2; rh = 16 + tol*2;
+    } else {
+      rx = Math.min(a.x1,a.x2) - tol; ry = Math.min(a.y1,a.y2) - tol;
+      rw = Math.abs(a.x2-a.x1) + tol*2; rh = Math.abs(a.y2-a.y1) + tol*2;
+    }
+
+    ctx.strokeRect(rx, ry, rw, rh);
+
+    // Corner handles
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.strokeStyle = '#0071E3';
+    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = 1;
+    const hs = 4;
+    [[rx, ry], [rx+rw, ry], [rx, ry+rh], [rx+rw, ry+rh]].forEach(([hx, hy]) => {
+      ctx.fillRect(hx - hs, hy - hs, hs*2, hs*2);
+      ctx.strokeRect(hx - hs, hy - hs, hs*2, hs*2);
+    });
+    ctx.restore();
+  }
+
+  // ---- Delete selected ----
+  function deleteSelected() {
+    if (selectedAnnotIndex < 0) return;
+    _del(selectedAnnotIndex);
   }
 
   function getPos(e, canvas) {
@@ -183,31 +345,25 @@ const AnnotateModule = (() => {
         ctx.fillRect(Math.min(x1,x2), y1 - 14, Math.abs(x2-x1), 16);
         break;
       case 'underline':
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = color; ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(Math.min(x1,x2), y1 + 2);
-        ctx.lineTo(Math.max(x1,x2), y1 + 2);
+        ctx.moveTo(Math.min(x1,x2), y1 + 2); ctx.lineTo(Math.max(x1,x2), y1 + 2);
         ctx.stroke();
         break;
       case 'strikethrough': {
         const midY = (y1 + y2) / 2;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = color; ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(Math.min(x1,x2), midY);
-        ctx.lineTo(Math.max(x1,x2), midY);
+        ctx.moveTo(Math.min(x1,x2), midY); ctx.lineTo(Math.max(x1,x2), midY);
         ctx.stroke();
         break;
       }
       case 'rect':
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = color; ctx.lineWidth = 2;
         ctx.strokeRect(Math.min(x1,x2), Math.min(y1,y2), Math.abs(x2-x1), Math.abs(y2-y1));
         break;
       case 'circle':
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = color; ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.ellipse((x1+x2)/2, (y1+y2)/2, Math.abs(x2-x1)/2, Math.abs(y2-y1)/2, 0, 0, Math.PI*2);
         ctx.stroke();
@@ -220,31 +376,24 @@ const AnnotateModule = (() => {
   }
 
   function drawArrow(ctx, x1, y1, x2, y2, color) {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const length = Math.sqrt(dx * dx + dy * dy);
+    const dx = x2 - x1, dy = y2 - y1;
+    const length = Math.sqrt(dx*dx + dy*dy);
     if (length < 2) return;
     const angle = Math.atan2(dy, dx);
     const headLen = Math.min(24, Math.max(10, length * 0.3));
     const headAngle = Math.PI / 7;
 
-    ctx.strokeStyle = color;
-    ctx.fillStyle = color;
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    ctx.strokeStyle = color; ctx.fillStyle = color;
+    ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
 
-    // Shaft
     ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
+    ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
     ctx.stroke();
 
-    // Filled arrowhead triangle
     ctx.beginPath();
     ctx.moveTo(x2, y2);
-    ctx.lineTo(x2 - headLen * Math.cos(angle - headAngle), y2 - headLen * Math.sin(angle - headAngle));
-    ctx.lineTo(x2 - headLen * Math.cos(angle + headAngle), y2 - headLen * Math.sin(angle + headAngle));
+    ctx.lineTo(x2 - headLen*Math.cos(angle - headAngle), y2 - headLen*Math.sin(angle - headAngle));
+    ctx.lineTo(x2 - headLen*Math.cos(angle + headAngle), y2 - headLen*Math.sin(angle + headAngle));
     ctx.closePath();
     ctx.fill();
   }
@@ -254,7 +403,7 @@ const AnnotateModule = (() => {
     overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
     annotations.filter(a => a.page === currentPage).forEach(a => {
       overlayCtx.save();
-      overlayCtx.globalAlpha = a.opacity || 0.5;
+      overlayCtx.globalAlpha = a.opacity ?? 0.5;
       overlayCtx.fillStyle = a.color;
       overlayCtx.strokeStyle = a.color;
       overlayCtx.lineWidth = 2;
@@ -306,21 +455,45 @@ const AnnotateModule = (() => {
       }
       overlayCtx.restore();
     });
+
+    // Draw selection on top
+    if (selectedAnnotIndex >= 0 && annotations[selectedAnnotIndex]?.page === currentPage) {
+      drawSelectionIndicator(annotations[selectedAnnotIndex]);
+    }
   }
 
   function updateList() {
     const list = document.getElementById('annotate-list');
     if (!list) return;
-    list.innerHTML = annotations.map((a, i) => `
-      <div class="annotation-item">
-        <span class="annotation-color" style="background:${a.color}"></span>
-        <span style="flex:1">${a.type} — p.${a.page}${a.text?' : '+a.text:''}</span>
-        <button class="btn btn-ghost btn-xs" onclick="AnnotateModule._del(${i})">✕</button>
-      </div>
-    `).join('');
+    if (!annotations.length) {
+      list.innerHTML = '<p style="font-size:12px;color:var(--text-muted);text-align:center;padding:8px 0">Aucune annotation</p>';
+    } else {
+      list.innerHTML = annotations.map((a, i) => `
+        <div class="annotation-item${i === selectedAnnotIndex ? ' selected' : ''}" onclick="AnnotateModule._select(${i})" style="cursor:pointer">
+          <span class="annotation-color" style="background:${a.color}"></span>
+          <span style="flex:1;font-size:12px">${a.type} — p.${a.page}${a.text ? ' : ' + a.text : ''}</span>
+          <button class="btn btn-ghost btn-xs" onclick="event.stopPropagation();AnnotateModule._del(${i})">✕</button>
+        </div>
+      `).join('');
+    }
+    const delBtn = document.getElementById('annotate-del-selected');
+    if (delBtn) delBtn.style.display = selectedAnnotIndex >= 0 ? 'block' : 'none';
+  }
+
+  function _select(i) {
+    selectedAnnotIndex = i;
+    if (annotations[i] && annotations[i].page !== currentPage) {
+      currentPage = annotations[i].page;
+      renderPage(currentPage);
+      return;
+    }
+    redraw();
+    updateList();
   }
 
   function _del(i) {
+    if (i === selectedAnnotIndex) selectedAnnotIndex = -1;
+    else if (i < selectedAnnotIndex) selectedAnnotIndex--;
     annotations.splice(i, 1);
     redraw();
     updateList();
@@ -328,24 +501,25 @@ const AnnotateModule = (() => {
 
   function selectTool(tool, btnEl) {
     currentTool = tool;
+    if (tool !== 'select') { selectedAnnotIndex = -1; redraw(); }
     document.querySelectorAll('#annotate-toolbar .edit-tool-btn').forEach(b => b.classList.remove('active'));
     if (btnEl) btnEl.classList.add('active');
-    if (overlayCanvas) overlayCanvas.style.cursor = 'crosshair';
+    if (overlayCanvas) overlayCanvas.style.cursor = tool === 'select' ? 'default' : 'crosshair';
+    updateList();
   }
 
   async function save() {
     if (!currentFile) return;
-    // Flatten annotations onto PDF by re-rendering overlayCanvas onto each page
-    // Uses canvas compositing approach
     if (!window.PDFLib) {
       UI.error('pdf-lib requis pour sauvegarder. Voir libs/README.md');
       return;
     }
     try {
+      selectedAnnotIndex = -1;
+      redraw(); // hide selection indicator in output
       const ab = await currentFile.arrayBuffer();
       const { PDFDocument } = PDFLib;
       const pdfLibDoc = await PDFDocument.load(ab);
-      // For now, render current overlay as image and embed
       const imgData = overlayCanvas.toDataURL('image/png');
       const resp = await fetch(imgData);
       const imgBytes = await resp.arrayBuffer();
@@ -371,7 +545,7 @@ const AnnotateModule = (() => {
 
   function activate() { _autoLoad(); }
 
-  return { init, loadFile, save, _del, activate };
+  return { init, loadFile, save, _del, _select, activate };
 })();
 
 window.AnnotateModule = AnnotateModule;

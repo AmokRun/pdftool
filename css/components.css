@@ -1372,8 +1372,15 @@ kbd {
   gap: 8px;
   padding: 6px 10px;
   background: var(--bg-tertiary);
+  border: 1px solid transparent;
   border-radius: 6px;
   font-size: 11px;
+  transition: background var(--transition), border-color var(--transition);
+}
+.annotation-item:hover { background: var(--bg-card); }
+.annotation-item.selected {
+  background: rgba(0, 113, 227, 0.08);
+  border-color: rgba(0, 113, 227, 0.35);
 }
 .annotation-color { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
 
