@@ -355,10 +355,18 @@ const CompareModule = (() => {
       r.addEventListener('change', () => { state.mode = r.value; });
     });
 
+    _autoLoad();
     console.log('[CompareModule] initialized');
   }
 
-  return { init };
+  function _autoLoad() {
+    const f = window.PDFState?.get();
+    if (!state.file1 && f) handleFile1([f]);
+  }
+
+  function activate() { _autoLoad(); }
+
+  return { init, activate };
 })();
 
 window.CompareModule = CompareModule;

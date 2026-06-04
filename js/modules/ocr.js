@@ -138,6 +138,7 @@ const OCRModule = (() => {
   // ================================================================
   async function loadFile(file) {
     if (!file) return;
+    window.PDFState?.set(file);
     state.file = file;
     state.pages = [];
 
@@ -419,10 +420,18 @@ const OCRModule = (() => {
       setEngineStatus('Prêt');
     }
 
+    _autoLoad();
     console.log('[OCRModule] initialized');
   }
 
-  return { init };
+  function _autoLoad() {
+    const f = window.PDFState?.get();
+    if (!state.file && f) loadFile(f);
+  }
+
+  function activate() { _autoLoad(); }
+
+  return { init, loadFile, activate };
 })();
 
 window.OCRModule = OCRModule;

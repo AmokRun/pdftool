@@ -56,6 +56,7 @@ const MetadataModule = (() => {
   // ================================================================
   async function loadFile(file) {
     if (!file) return;
+    window.PDFState?.set(file);
     state.file = file;
 
     const editor = document.getElementById('metadata-editor');
@@ -354,10 +355,18 @@ const MetadataModule = (() => {
     const saveBtn = document.getElementById('metadata-save-btn');
     if (saveBtn) saveBtn.addEventListener('click', saveMetadata);
 
+    _autoLoad();
     console.log('[MetadataModule] initialized');
   }
 
-  return { init };
+  function _autoLoad() {
+    const f = window.PDFState?.get();
+    if (!state.file && f) loadFile(f);
+  }
+
+  function activate() { _autoLoad(); }
+
+  return { init, loadFile, activate };
 })();
 
 window.MetadataModule = MetadataModule;

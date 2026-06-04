@@ -31,6 +31,7 @@ const BookmarksModule = (() => {
   // ---- Load and parse outline ----
   async function loadFile(file) {
     if (!file) return;
+    window.PDFState?.set(file);
     state.file = file;
     const editor = qs('bookmarks-editor');
     UI.showLoading('bookmarks-editor', 'Chargement...');
@@ -401,10 +402,18 @@ const BookmarksModule = (() => {
     if (bmAddBtn) bmAddBtn.addEventListener('click', addBookmark);
     if (bmSaveBtn) bmSaveBtn.addEventListener('click', saveBookmarks);
 
+    _autoLoad();
     console.log('[BookmarksModule] initialized');
   }
 
-  return { init, loadFile };
+  function _autoLoad() {
+    const f = window.PDFState?.get();
+    if (!state.file && f) loadFile(f);
+  }
+
+  function activate() { _autoLoad(); }
+
+  return { init, loadFile, activate };
 })();
 
 window.BookmarksModule = BookmarksModule;
