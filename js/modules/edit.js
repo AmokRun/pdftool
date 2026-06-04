@@ -18,6 +18,10 @@ const EditModule = (() => {
   let mainCanvas = null;
   let overlayCanvas = null;
   let overlayCtx = null;
+  // Selection / drag state
+  let selectedAnnotIndex = -1;
+  let isDragging = false;
+  let dragPrevPos = null;
 
   function init() {
     setupFileInputs();
@@ -42,6 +46,15 @@ const EditModule = (() => {
     });
     const saveBtn = document.getElementById('edit-save-btn');
     if (saveBtn) saveBtn.onclick = save;
+    const delBtn = document.getElementById('edit-del-selected');
+    if (delBtn) delBtn.onclick = () => {
+      if (selectedAnnotIndex !== -1) {
+        annotations.splice(selectedAnnotIndex, 1);
+        selectedAnnotIndex = -1;
+        redrawAnnotations();
+        document.getElementById('edit-del-selected')?.style.setProperty('display', 'none');
+      }
+    };
   }
 
   function setupOptions() {
@@ -65,7 +78,13 @@ const EditModule = (() => {
     }
     UI.showLoading('edit-canvas-area', 'Chargement du PDF...');
     try {
-      const arrayBuffer = await file.arrayBuffer();
+      const sharedBytes = window.PDFState?.getBytes();
+      let arrayBuffer;
+      if (sharedBytes) {
+        arrayBuffer = sharedBytes.buffer.slice(sharedBytes.byteOffset, sharedBytes.byteOffset + sharedBytes.byteLength);
+      } else {
+        arrayBuffer = await file.arrayBuffer();
+      }
       currentBuffer = arrayBuffer.slice(0);
       const typedArray = new Uint8Array(arrayBuffer);
       pdfDoc = await pdfjsLib.getDocument({ data: typedArray }).promise;
@@ -195,25 +214,50 @@ const EditModule = (() => {
   }
 
   function onMouseDown(e) {
-    if (currentTool !== 'draw' && currentTool !== 'eraser') return;
-    isDrawing = true;
     const rect = overlayCanvas.getBoundingClientRect();
     const x = (e.clientX || e.pageX) - rect.left;
     const y = (e.clientY || e.pageY) - rect.top;
+    if (currentTool === 'select') {
+      const idx = hitTest(x, y);
+      selectedAnnotIndex = idx;
+      isDragging = idx !== -1;
+      dragPrevPos = { x, y };
+      redrawAnnotations();
+      return;
+    }
+    if (currentTool !== 'draw' && currentTool !== 'eraser') return;
+    isDrawing = true;
     drawPath = [{ x, y }];
   }
 
   function onMouseMove(e) {
-    if (!isDrawing) return;
     const rect = overlayCanvas.getBoundingClientRect();
     const x = (e.clientX || e.pageX) - rect.left;
     const y = (e.clientY || e.pageY) - rect.top;
+    if (currentTool === 'select') {
+      if (isDragging && selectedAnnotIndex !== -1) {
+        const dx = x - dragPrevPos.x;
+        const dy = y - dragPrevPos.y;
+        dragPrevPos = { x, y };
+        moveAnnotation(selectedAnnotIndex, dx, dy);
+        redrawAnnotations();
+      } else {
+        if (overlayCanvas) overlayCanvas.style.cursor = hitTest(x, y) !== -1 ? 'move' : 'default';
+      }
+      return;
+    }
+    if (!isDrawing) return;
     drawPath.push({ x, y });
     redrawAnnotations();
     drawCurrentPath();
   }
 
   function onMouseUp() {
+    if (currentTool === 'select') {
+      isDragging = false;
+      dragPrevPos = null;
+      return;
+    }
     if (!isDrawing) return;
     isDrawing = false;
     if (drawPath.length > 1) {
@@ -253,6 +297,73 @@ const EditModule = (() => {
       ctx.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
     }
     ctx.stroke();
+    ctx.restore();
+  }
+
+  function pathBBox(path) {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    path.forEach(p => { minX = Math.min(minX, p.x); minY = Math.min(minY, p.y); maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y); });
+    return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+  }
+
+  function getAnnotBBox(a) {
+    if (a.type === 'text') {
+      const fs = a.size || 12;
+      return { x: a.x, y: a.y - fs, w: Math.max((a.text || '').length * fs * 0.6, 20), h: fs + 4 };
+    }
+    if (a.type === 'stamp') return { x: a.x, y: a.y - 24, w: 160, h: 30 };
+    if (a.type === 'image') return { x: a.x, y: a.y, w: a.width || 100, h: a.height || 100 };
+    if (a.type === 'draw' || a.type === 'eraser') {
+      const bb = pathBBox(a.path || []);
+      return { x: bb.x, y: bb.y, w: Math.max(bb.w, 4), h: Math.max(bb.h, 4) };
+    }
+    return null;
+  }
+
+  function inRect(x, y, rx, ry, rw, rh, tol) {
+    return x >= rx - tol && x <= rx + rw + tol && y >= ry - tol && y <= ry + rh + tol;
+  }
+
+  function hitTest(x, y) {
+    const tol = 6;
+    const pageAnns = annotations.filter(a => a.page === currentPage);
+    for (let i = pageAnns.length - 1; i >= 0; i--) {
+      const a = pageAnns[i];
+      const bbox = getAnnotBBox(a);
+      if (!bbox) continue;
+      if (inRect(x, y, bbox.x, bbox.y, bbox.w, bbox.h, tol)) return annotations.indexOf(a);
+    }
+    return -1;
+  }
+
+  function moveAnnotation(idx, dx, dy) {
+    const a = annotations[idx];
+    if (!a) return;
+    if (a.type === 'text' || a.type === 'stamp') { a.x += dx; a.y += dy; }
+    else if (a.type === 'image') { a.x += dx; a.y += dy; }
+    else if (a.type === 'draw' || a.type === 'eraser') {
+      a.path = a.path.map(p => ({ x: p.x + dx, y: p.y + dy }));
+    }
+  }
+
+  function drawSelectionIndicator(a) {
+    const bbox = getAnnotBBox(a);
+    if (!bbox) return;
+    const ctx = overlayCtx;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(0,113,227,0.85)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 3]);
+    ctx.strokeRect(bbox.x - 4, bbox.y - 4, bbox.w + 8, bbox.h + 8);
+    ctx.setLineDash([]);
+    [[bbox.x - 4, bbox.y - 4], [bbox.x + bbox.w + 4, bbox.y - 4],
+     [bbox.x - 4, bbox.y + bbox.h + 4], [bbox.x + bbox.w + 4, bbox.y + bbox.h + 4]
+    ].forEach(([cx, cy]) => {
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(cx - 3, cy - 3, 6, 6);
+      ctx.strokeStyle = 'rgba(0,113,227,0.85)';
+      ctx.strokeRect(cx - 3, cy - 3, 6, 6);
+    });
     ctx.restore();
   }
 
@@ -300,15 +411,21 @@ const EditModule = (() => {
         overlayCtx.restore();
       }
     });
+    if (selectedAnnotIndex !== -1 && annotations[selectedAnnotIndex]?.page === currentPage) {
+      drawSelectionIndicator(annotations[selectedAnnotIndex]);
+    }
   }
 
   function selectTool(tool, btnEl) {
+    if (tool !== 'select') { selectedAnnotIndex = -1; redrawAnnotations(); }
     currentTool = tool;
     document.querySelectorAll('.edit-tool-btn').forEach(b => b.classList.remove('active'));
     if (btnEl) btnEl.classList.add('active');
 
     document.getElementById('edit-text-options')?.classList.toggle('hidden', tool !== 'text');
     document.getElementById('edit-draw-options')?.classList.toggle('hidden', tool !== 'draw' && tool !== 'eraser');
+    const delBtn = document.getElementById('edit-del-selected');
+    if (delBtn) delBtn.style.display = (tool === 'select') ? 'block' : 'none';
     if (overlayCanvas) overlayCanvas.style.cursor = tool === 'select' ? 'default' : 'crosshair';
   }
 
@@ -360,6 +477,8 @@ const EditModule = (() => {
       }
 
       const pdfBytes = await pdfLibDoc.save();
+      window.PDFState?.setBytes(pdfBytes);
+      currentBuffer = pdfBytes.buffer.slice(pdfBytes.byteOffset, pdfBytes.byteOffset + pdfBytes.byteLength);
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const name = (currentFile?.name || 'document').replace(/\.pdf$/i, '') + '_edite.pdf';
       UI.downloadBlob(blob, name);

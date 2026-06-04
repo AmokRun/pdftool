@@ -61,7 +61,13 @@ const AnnotateModule = (() => {
     currentFile = file;
     annotations = [];
     selectedAnnotIndex = -1;
-    const ab = await file.arrayBuffer();
+    const sharedBytes = window.PDFState?.getBytes();
+    let ab;
+    if (sharedBytes) {
+      ab = sharedBytes.buffer.slice(sharedBytes.byteOffset, sharedBytes.byteOffset + sharedBytes.byteLength);
+    } else {
+      ab = await file.arrayBuffer();
+    }
     pdfDoc = await pdfjsLib.getDocument({ data: new Uint8Array(ab) }).promise;
     totalPages = pdfDoc.numPages;
     currentPage = 1;
@@ -517,9 +523,15 @@ const AnnotateModule = (() => {
     try {
       selectedAnnotIndex = -1;
       redraw(); // hide selection indicator in output
-      const ab = await currentFile.arrayBuffer();
+      const sharedBytes = window.PDFState?.getBytes();
+      let sourceAb;
+      if (sharedBytes) {
+        sourceAb = sharedBytes.buffer.slice(sharedBytes.byteOffset, sharedBytes.byteOffset + sharedBytes.byteLength);
+      } else {
+        sourceAb = await currentFile.arrayBuffer();
+      }
       const { PDFDocument } = PDFLib;
-      const pdfLibDoc = await PDFDocument.load(ab);
+      const pdfLibDoc = await PDFDocument.load(sourceAb);
       const imgData = overlayCanvas.toDataURL('image/png');
       const resp = await fetch(imgData);
       const imgBytes = await resp.arrayBuffer();
@@ -529,6 +541,7 @@ const AnnotateModule = (() => {
       page.drawImage(img, { x: 0, y: 0, width, height });
 
       const bytes = await pdfLibDoc.save();
+      window.PDFState?.setBytes(bytes);
       const blob = new Blob([bytes], { type: 'application/pdf' });
       UI.downloadBlob(blob, currentFile.name.replace('.pdf', '_annote.pdf'));
       UI.success('PDF annoté sauvegardé !');

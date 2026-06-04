@@ -3,8 +3,11 @@
    ============================================================ */
 window.PDFState = (() => {
   let _file = null;
+  let _bytes = null; // Uint8Array — latest modified PDF bytes shared across modules
 
   function set(file) {
+    const isNewFile = file !== _file;
+    if (isNewFile) _bytes = null;
     _file = file;
     const pill = document.getElementById('current-pdf-pill');
     const name = document.getElementById('current-pdf-name');
@@ -12,15 +15,31 @@ window.PDFState = (() => {
     if (file) {
       if (name) name.textContent = file.name;
       pill.classList.remove('hidden');
+      if (isNewFile) pill.classList.remove('has-changes');
     } else {
+      pill.classList.remove('has-changes');
       pill.classList.add('hidden');
     }
   }
 
   function get() { return _file; }
-  function clear() { set(null); }
 
-  return { set, get, clear };
+  function setBytes(uint8array) {
+    _bytes = uint8array;
+    const pill = document.getElementById('current-pdf-pill');
+    if (pill && _file) pill.classList.add('has-changes');
+  }
+
+  function getBytes() { return _bytes; }
+
+  function clear() {
+    _file = null;
+    _bytes = null;
+    const pill = document.getElementById('current-pdf-pill');
+    if (pill) { pill.classList.add('hidden'); pill.classList.remove('has-changes'); }
+  }
+
+  return { set, get, setBytes, getBytes, clear };
 })();
 
 /* ============================================================

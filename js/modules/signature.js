@@ -353,9 +353,15 @@ const SignatureModule = (() => {
     const area = qs('signature-pdf-area');
     UI.showLoading('signature-pdf-area', 'Chargement du PDF...');
     try {
-      const ab = await file.arrayBuffer();
-      state.arrayBuffer = ab;
       if (!window.pdfjsLib) throw new Error('PDF.js non disponible');
+      const sharedBytes = window.PDFState?.getBytes();
+      let ab;
+      if (sharedBytes) {
+        ab = sharedBytes.buffer.slice(sharedBytes.byteOffset, sharedBytes.byteOffset + sharedBytes.byteLength);
+      } else {
+        ab = await file.arrayBuffer();
+      }
+      state.arrayBuffer = ab.slice(0); // fresh copy for pdf-lib (pdf.js detaches original)
       state.pdfJsDoc = await window.pdfjsLib.getDocument({ data: new Uint8Array(ab) }).promise;
       state.pageCount = state.pdfJsDoc.numPages;
       updateApplyBtn();
@@ -425,6 +431,7 @@ const SignatureModule = (() => {
       }
 
       const pdfBytes = await pdfDoc.save();
+      window.PDFState?.setBytes(pdfBytes);
       const outName = (state.file.name.replace(/\.pdf$/i, '') + '_signé.pdf');
       UI.downloadBlob(new Blob([pdfBytes], { type: 'application/pdf' }), outName);
 
