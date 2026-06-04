@@ -6,6 +6,8 @@
 
 const SignatureModule = (() => {
 
+  let _loadedVersion = -1;
+
   // ---- State ----
   const state = {
     file: null,
@@ -179,8 +181,8 @@ const SignatureModule = (() => {
   }
 
   function updateApplyBtn() {
-    const btn = qs('sig-apply-btn');
-    if (!btn) return;
+    const applyBtn = qs('sig-apply-btn');
+    const saveBtn = qs('sig-save-btn');
     let hasSignature = false;
     if (state.currentTab === 'draw') {
       hasSignature = !!(state._sigStrokes && state._sigStrokes.length > 0);
@@ -189,7 +191,8 @@ const SignatureModule = (() => {
     } else if (state.currentTab === 'type') {
       hasSignature = !!(qs('sig-text-input')?.value?.trim());
     }
-    btn.disabled = !hasSignature || !state.pdfJsDoc;
+    if (applyBtn) applyBtn.disabled = !hasSignature || !state.pdfJsDoc;
+    if (saveBtn) saveBtn.style.display = state.placedSignatures.length > 0 ? 'block' : 'none';
   }
 
   // ---- Capture the current signature as data URL ----
@@ -286,18 +289,8 @@ const SignatureModule = (() => {
       state.placementMode = false;
       hitCanvas.style.cursor = 'default';
       redrawPlacements(state.currentPage);
-      UI.success('Signature placée ! Cliquez sur "Sauvegarder" pour télécharger.', 'Signature');
-
-      // Show save button
-      if (!qs('sig-save-btn')) {
-        const saveBtn = document.createElement('button');
-        saveBtn.id = 'sig-save-btn';
-        saveBtn.className = 'btn btn-success btn-full';
-        saveBtn.textContent = 'Sauvegarder le PDF signé';
-        saveBtn.style.marginTop = '12px';
-        saveBtn.addEventListener('click', savePDF);
-        area.parentElement?.appendChild(saveBtn);
-      }
+      updateApplyBtn();
+      UI.success('Signature placée ! Placez-en d\'autres ou cliquez sur "Sauvegarder" quand vous avez terminé.', 'Signature');
     });
 
     // Hover preview during placement
@@ -346,6 +339,7 @@ const SignatureModule = (() => {
   // ---- Load PDF ----
   async function loadFile(file) {
     if (!file) return;
+    _loadedVersion = window.PDFState?.getVersion() ?? 0;
     window.PDFState?.set(file);
     state.file = file;
     state.placedSignatures = [];
@@ -509,16 +503,20 @@ const SignatureModule = (() => {
     const applyBtn = qs('sig-apply-btn');
     if (applyBtn) applyBtn.addEventListener('click', activatePlacementMode);
 
-    _autoLoad();
+    // Static save button (always in sidebar, shown when signatures are placed)
+    const saveBtn = qs('sig-save-btn');
+    if (saveBtn) saveBtn.addEventListener('click', savePDF);
+
+    activate();
     console.log('[SignatureModule] initialized');
   }
 
-  function _autoLoad() {
+  function activate() {
     const f = window.PDFState?.get();
-    if (!state.file && f) loadFile(f);
+    if (!f) return;
+    const v = window.PDFState?.getVersion() ?? 0;
+    if (!state.file || (state.file === f && v > _loadedVersion)) loadFile(f);
   }
-
-  function activate() { _autoLoad(); }
 
   return { init, loadFile, activate };
 })();

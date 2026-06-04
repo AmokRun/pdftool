@@ -22,6 +22,7 @@ const AnnotateModule = (() => {
   // Canvas refs
   let overlayCanvas = null;
   let overlayCtx = null;
+  let _loadedVersion = -1;
 
   function init() {
     const btn = document.getElementById('annotate-add-btn');
@@ -52,6 +53,7 @@ const AnnotateModule = (() => {
   }
 
   async function loadFile(file) {
+    _loadedVersion = window.PDFState?.getVersion() ?? 0;
     window.PDFState?.set(file);
     if (!window.pdfjsLib) {
       document.getElementById('annotate-canvas-area').innerHTML =
@@ -551,14 +553,55 @@ const AnnotateModule = (() => {
     }
   }
 
+  function hasChanges() {
+    return annotations.some(a => a.page === currentPage);
+  }
+
+  async function applyChanges() {
+    if (!currentFile || !overlayCanvas || !window.PDFLib || !annotations.some(a => a.page === currentPage)) return;
+    try {
+      selectedAnnotIndex = -1;
+      redraw();
+      const sharedBytes = window.PDFState?.getBytes();
+      let sourceAb;
+      if (sharedBytes) {
+        sourceAb = sharedBytes.buffer.slice(sharedBytes.byteOffset, sharedBytes.byteOffset + sharedBytes.byteLength);
+      } else {
+        sourceAb = await currentFile.arrayBuffer();
+      }
+      const { PDFDocument } = PDFLib;
+      const pdfLibDoc = await PDFDocument.load(sourceAb);
+      const imgData = overlayCanvas.toDataURL('image/png');
+      const resp = await fetch(imgData);
+      const imgBytes = await resp.arrayBuffer();
+      const img = await pdfLibDoc.embedPng(imgBytes);
+      const page = pdfLibDoc.getPage(currentPage - 1);
+      const { width, height } = page.getSize();
+      page.drawImage(img, { x: 0, y: 0, width, height });
+      const bytes = await pdfLibDoc.save();
+      window.PDFState?.setBytes(bytes);
+      _loadedVersion = window.PDFState?.getVersion() ?? 0;
+      annotations = annotations.filter(a => a.page !== currentPage);
+      overlayCtx?.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+      updateList();
+    } catch(err) {
+      console.warn('[AnnotateModule] applyChanges failed:', err);
+    }
+  }
+
   function _autoLoad() {
     const f = window.PDFState?.get();
     if (!currentFile && f) loadFile(f);
   }
 
-  function activate() { _autoLoad(); }
+  function activate() {
+    const f = window.PDFState?.get();
+    if (!f) return;
+    const v = window.PDFState?.getVersion() ?? 0;
+    if (!currentFile || (currentFile === f && v > _loadedVersion)) loadFile(f);
+  }
 
-  return { init, loadFile, save, _del, _select, activate };
+  return { init, loadFile, save, _del, _select, activate, hasChanges, applyChanges };
 })();
 
 window.AnnotateModule = AnnotateModule;

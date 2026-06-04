@@ -22,6 +22,7 @@ const EditModule = (() => {
   let selectedAnnotIndex = -1;
   let isDragging = false;
   let dragPrevPos = null;
+  let _loadedVersion = -1;
 
   function init() {
     setupFileInputs();
@@ -68,6 +69,7 @@ const EditModule = (() => {
   }
 
   async function loadFile(file) {
+    _loadedVersion = window.PDFState?.getVersion() ?? 0;
     window.PDFState?.set(file);
     currentFile = file;
     const toolbar = document.getElementById('edit-toolbar');
@@ -505,14 +507,69 @@ const EditModule = (() => {
     return { clientX: touch.clientX, clientY: touch.clientY };
   }
 
+  function hasChanges() {
+    return annotations.some(a => a.type === 'text' || a.type === 'draw' || a.type === 'image');
+  }
+
+  async function applyChanges() {
+    if (!currentBuffer || !window.PDFLib) return;
+    const applicable = annotations.filter(a => a.type === 'text' || a.type === 'draw' || a.type === 'image');
+    if (!applicable.length) return;
+    try {
+      const { PDFDocument, rgb, StandardFonts } = PDFLib;
+      const pdfLibDoc = await PDFDocument.load(currentBuffer);
+      let font;
+      try { font = await pdfLibDoc.embedFont(StandardFonts.Helvetica); }
+      catch(e) { font = await pdfLibDoc.embedFont(StandardFonts.TimesRoman); }
+      for (const ann of applicable) {
+        if (ann.page < 1 || ann.page > pdfLibDoc.getPageCount()) continue;
+        const page = pdfLibDoc.getPage(ann.page - 1);
+        const { height } = page.getSize();
+        if (ann.type === 'text') {
+          const [r, g, b] = hexToRgb(ann.color);
+          page.drawText(ann.text, { x: ann.x / scale, y: height - (ann.y / scale), size: ann.size, font, color: rgb(r, g, b) });
+        } else if (ann.type === 'draw' && ann.path.length > 1) {
+          const [r, g, b] = hexToRgb(ann.color);
+          for (let i = 1; i < ann.path.length; i++) {
+            page.drawLine({
+              start: { x: ann.path[i-1].x / scale, y: height - ann.path[i-1].y / scale },
+              end:   { x: ann.path[i].x   / scale, y: height - ann.path[i].y   / scale },
+              thickness: ann.width / scale, color: rgb(r, g, b)
+            });
+          }
+        } else if (ann.type === 'image' && ann.src) {
+          const resp = await fetch(ann.src);
+          const imgBytes = await resp.arrayBuffer();
+          const embeddedImg = ann.src.includes('png')
+            ? await pdfLibDoc.embedPng(imgBytes)
+            : await pdfLibDoc.embedJpg(imgBytes);
+          page.drawImage(embeddedImg, { x: ann.x / scale, y: height - (ann.y + ann.height) / scale, width: ann.width / scale, height: ann.height / scale });
+        }
+      }
+      const pdfBytes = await pdfLibDoc.save();
+      window.PDFState?.setBytes(pdfBytes);
+      _loadedVersion = window.PDFState?.getVersion() ?? 0;
+      currentBuffer = pdfBytes.buffer.slice(pdfBytes.byteOffset, pdfBytes.byteOffset + pdfBytes.byteLength);
+      annotations = annotations.filter(a => a.type !== 'text' && a.type !== 'draw' && a.type !== 'image');
+      redrawAnnotations();
+    } catch(err) {
+      console.warn('[EditModule] applyChanges failed:', err);
+    }
+  }
+
   function _autoLoad() {
     const f = window.PDFState?.get();
     if (!currentFile && f) loadFile(f);
   }
 
-  function activate() { _autoLoad(); }
+  function activate() {
+    const f = window.PDFState?.get();
+    if (!f) return;
+    const v = window.PDFState?.getVersion() ?? 0;
+    if (!currentFile || (currentFile === f && v > _loadedVersion)) loadFile(f);
+  }
 
-  return { init, loadFile, save, activate };
+  return { init, loadFile, save, activate, hasChanges, applyChanges };
 })();
 
 window.EditModule = EditModule;

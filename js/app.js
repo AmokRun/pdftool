@@ -24,22 +24,27 @@ window.PDFState = (() => {
 
   function get() { return _file; }
 
+  let _version = 0;
+
   function setBytes(uint8array) {
     _bytes = uint8array;
+    _version++;
     const pill = document.getElementById('current-pdf-pill');
     if (pill && _file) pill.classList.add('has-changes');
   }
 
   function getBytes() { return _bytes; }
+  function getVersion() { return _version; }
 
   function clear() {
     _file = null;
     _bytes = null;
+    _version = 0;
     const pill = document.getElementById('current-pdf-pill');
     if (pill) { pill.classList.add('hidden'); pill.classList.remove('has-changes'); }
   }
 
-  return { set, get, setBytes, getBytes, clear };
+  return { set, get, setBytes, getBytes, getVersion, clear };
 })();
 
 /* ============================================================
@@ -377,6 +382,16 @@ const App = (() => {
       renderRecentFiles();
       renderStats();
       renderHistory();
+    });
+
+    // Auto-apply pending annotations when leaving edit or annotate
+    Router.beforeEach(async (path, prevPath) => {
+      if (prevPath === 'edit' && window.EditModule?.hasChanges?.()) {
+        await window.EditModule.applyChanges();
+      } else if (prevPath === 'annotate' && window.AnnotateModule?.hasChanges?.()) {
+        await window.AnnotateModule.applyChanges();
+      }
+      return true;
     });
   }
 
