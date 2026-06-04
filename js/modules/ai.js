@@ -20,6 +20,7 @@ const AIModule = (() => {
     setupChat();
     setupFunctionButtons();
     setupModelButton();
+    _autoLoad();
   }
 
   function setupFileInput() {
@@ -55,6 +56,7 @@ const AIModule = (() => {
 
   // ---- File loading ----
   async function loadFile(file) {
+    window.PDFState?.set(file);
     if (!window.pdfjsLib) {
       addMessage('assistant', 'PDF.js est requis pour lire les documents. Consultez libs/README.md');
       return;
@@ -412,7 +414,14 @@ const AIModule = (() => {
 
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-  return { init, loadFile, activate: () => {} };
+  function _autoLoad() {
+    const f = window.PDFState?.get();
+    if (!currentFile && f) loadFile(f);
+  }
+
+  function activate() { _autoLoad(); }
+
+  return { init, loadFile, activate };
 })();
 
 window.AIModule = AIModule;

@@ -346,6 +346,7 @@ const SignatureModule = (() => {
   // ---- Load PDF ----
   async function loadFile(file) {
     if (!file) return;
+    window.PDFState?.set(file);
     state.file = file;
     state.placedSignatures = [];
     state.currentPage = 1;
@@ -501,10 +502,18 @@ const SignatureModule = (() => {
     const applyBtn = qs('sig-apply-btn');
     if (applyBtn) applyBtn.addEventListener('click', activatePlacementMode);
 
+    _autoLoad();
     console.log('[SignatureModule] initialized');
   }
 
-  return { init, loadFile };
+  function _autoLoad() {
+    const f = window.PDFState?.get();
+    if (!state.file && f) loadFile(f);
+  }
+
+  function activate() { _autoLoad(); }
+
+  return { init, loadFile, activate };
 })();
 
 window.SignatureModule = SignatureModule;

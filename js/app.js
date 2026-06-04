@@ -1,4 +1,29 @@
 /* ============================================================
+   PDF STATE — shared PDF file across all tools
+   ============================================================ */
+window.PDFState = (() => {
+  let _file = null;
+
+  function set(file) {
+    _file = file;
+    const pill = document.getElementById('current-pdf-pill');
+    const name = document.getElementById('current-pdf-name');
+    if (!pill) return;
+    if (file) {
+      if (name) name.textContent = file.name;
+      pill.classList.remove('hidden');
+    } else {
+      pill.classList.add('hidden');
+    }
+  }
+
+  function get() { return _file; }
+  function clear() { set(null); }
+
+  return { set, get, clear };
+})();
+
+/* ============================================================
    APP — main entry point, dashboard, global handlers
    ============================================================ */
 'use strict';
@@ -256,13 +281,14 @@ const App = (() => {
     const images = files.filter(f => f.type.startsWith('image/'));
 
     if (pdfs.length > 1) {
-      // Multiple PDFs → merge
       Router.navigate('merge');
       window.location.hash = 'merge';
       setTimeout(() => {
         if (window.MergeModule) window.MergeModule.addFiles(pdfs);
       }, 300);
     } else if (pdfs.length === 1) {
+      // Share single PDF across all tools
+      PDFState.set(pdfs[0]);
       Router.navigate('edit');
       window.location.hash = 'edit';
       setTimeout(() => {
@@ -346,6 +372,9 @@ const App = (() => {
     registerRoutes();
     initDashboard();
     Router.init();
+
+    const clearPdfBtn = document.getElementById('clear-pdf-btn');
+    if (clearPdfBtn) clearPdfBtn.addEventListener('click', () => PDFState.clear());
 
     // Log startup
     console.log(

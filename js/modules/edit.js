@@ -23,6 +23,7 @@ const EditModule = (() => {
     setupFileInputs();
     setupToolbar();
     setupOptions();
+    _autoLoad();
   }
 
   function setupFileInputs() {
@@ -54,6 +55,7 @@ const EditModule = (() => {
   }
 
   async function loadFile(file) {
+    window.PDFState?.set(file);
     currentFile = file;
     const toolbar = document.getElementById('edit-toolbar');
     const area = document.getElementById('edit-canvas-area');
@@ -363,7 +365,12 @@ const EditModule = (() => {
     return { clientX: touch.clientX, clientY: touch.clientY };
   }
 
-  function activate() { /* already rendered */ }
+  function _autoLoad() {
+    const f = window.PDFState?.get();
+    if (!currentFile && f) loadFile(f);
+  }
+
+  function activate() { _autoLoad(); }
 
   return { init, loadFile, save, activate };
 })();

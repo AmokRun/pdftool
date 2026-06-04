@@ -24,9 +24,11 @@ const FormsModule = (() => {
     if (saveBtn) saveBtn.onclick = saveFilled;
     if (resetBtn) resetBtn.onclick = resetFields;
     if (exportBtn) exportBtn.onclick = exportData;
+    _autoLoad();
   }
 
   async function loadFile(file) {
+    window.PDFState?.set(file);
     if (!window.pdfjsLib) {
       document.getElementById('forms-viewer').innerHTML =
         '<div class="empty-list-state">PDF.js requis. Voir libs/README.md</div>';
@@ -190,7 +192,14 @@ const FormsModule = (() => {
 
   function escHtml(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-  return { init, loadFile, activate: () => {} };
+  function _autoLoad() {
+    const f = window.PDFState?.get();
+    if (!currentFile && f) loadFile(f);
+  }
+
+  function activate() { _autoLoad(); }
+
+  return { init, loadFile, activate };
 })();
 
 window.FormsModule = FormsModule;

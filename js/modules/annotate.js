@@ -32,9 +32,11 @@ const AnnotateModule = (() => {
 
     const saveBtn = document.getElementById('annotate-save-btn');
     if (saveBtn) saveBtn.onclick = save;
+    _autoLoad();
   }
 
   async function loadFile(file) {
+    window.PDFState?.set(file);
     if (!window.pdfjsLib) {
       document.getElementById('annotate-canvas-area').innerHTML =
         '<div class="empty-list-state">PDF.js requis. Voir libs/README.md</div>';
@@ -327,7 +329,14 @@ const AnnotateModule = (() => {
     }
   }
 
-  return { init, loadFile, save, _del, activate: () => {} };
+  function _autoLoad() {
+    const f = window.PDFState?.get();
+    if (!currentFile && f) loadFile(f);
+  }
+
+  function activate() { _autoLoad(); }
+
+  return { init, loadFile, save, _del, activate };
 })();
 
 window.AnnotateModule = AnnotateModule;

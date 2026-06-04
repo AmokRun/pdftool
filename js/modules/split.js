@@ -316,6 +316,7 @@ const SplitModule = (() => {
 
   // ---- Load file (called from drop zone or file input) ----
   async function loadFile(file) {
+    window.PDFState?.set(file);
     const grid = document.getElementById('split-preview');
     if (grid) {
       grid.innerHTML = '<div class="empty-list-state"><div class="spinner spinner-sm"></div> Chargement...</div>';
@@ -361,10 +362,18 @@ const SplitModule = (() => {
     }
 
     updateSplitUI();
+    _autoLoad();
     console.log('[SplitModule] initialized');
   }
 
-  return { init, loadFile };
+  function _autoLoad() {
+    const f = window.PDFState?.get();
+    if (!state.file && f) loadFile(f);
+  }
+
+  function activate() { _autoLoad(); }
+
+  return { init, loadFile, activate };
 })();
 
 window.SplitModule = SplitModule;
@@ -686,6 +695,7 @@ const ReorderModule = (() => {
 
   // ---- Load file ----
   async function loadFile(file) {
+    window.PDFState?.set(file);
     const grid = document.getElementById('reorder-page-grid');
     if (grid) {
       grid.innerHTML = '<div class="empty-list-state"><div class="spinner spinner-sm"></div> Chargement...</div>';
@@ -747,10 +757,18 @@ const ReorderModule = (() => {
     }
 
     updateReorderUI();
+    _autoLoad();
     console.log('[ReorderModule] initialized');
   }
 
-  return { init, loadFile };
+  function _autoLoad() {
+    const f = window.PDFState?.get();
+    if (!state.file && f) loadFile(f);
+  }
+
+  function activate() { _autoLoad(); }
+
+  return { init, loadFile, activate };
 })();
 
 window.ReorderModule = ReorderModule;

@@ -131,6 +131,7 @@ const WatermarkModule = (() => {
   // ---- Load PDF file ----
   async function loadFile(file) {
     if (!file) return;
+    window.PDFState?.set(file);
     state.file = file;
     UI.showLoading('watermark-preview-area', 'Chargement...');
     try {
@@ -306,9 +307,18 @@ const WatermarkModule = (() => {
     // Execute
     const execBtn = qs('watermark-execute-btn');
     if (execBtn) execBtn.addEventListener('click', applyWatermark);
+
+    _autoLoad();
   }
 
-  return { init, loadFile };
+  function _autoLoad() {
+    const f = window.PDFState?.get();
+    if (!state.file && f) loadFile(f);
+  }
+
+  function activate() { _autoLoad(); }
+
+  return { init, loadFile, activate };
 })();
 
 window.WatermarkModule = WatermarkModule;

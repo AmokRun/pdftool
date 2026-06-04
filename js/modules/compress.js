@@ -53,6 +53,7 @@ const CompressModule = (() => {
       return;
     }
 
+    window.PDFState?.set(file);
     state.file = file;
     state.fileName = file.name;
     state.arrayBuffer = await file.arrayBuffer();
@@ -370,10 +371,18 @@ const CompressModule = (() => {
     // Set default active level
     setCompressionLevel('light');
 
+    _autoLoad();
     console.log('[CompressModule] initialized');
   }
 
-  return { init, loadFile };
+  function _autoLoad() {
+    const f = window.PDFState?.get();
+    if (!state.file && f) loadFile(f);
+  }
+
+  function activate() { _autoLoad(); }
+
+  return { init, loadFile, activate };
 })();
 
 window.CompressModule = CompressModule;
