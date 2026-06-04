@@ -233,9 +233,16 @@ const EditModule = (() => {
     const ctx = overlayCtx;
     const color = document.getElementById('edit-draw-color')?.value || '#ff0000';
     const width = parseInt(document.getElementById('edit-draw-width')?.value || '3');
+    ctx.save();
+    if (currentTool === 'eraser') {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.strokeStyle = 'rgba(0,0,0,1)';
+      ctx.lineWidth = width * 3;
+    } else {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+    }
     ctx.beginPath();
-    ctx.strokeStyle = currentTool === 'eraser' ? 'white' : color;
-    ctx.lineWidth = currentTool === 'eraser' ? width * 3 : width;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     const pts = drawPath;
@@ -246,6 +253,7 @@ const EditModule = (() => {
       ctx.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
     }
     ctx.stroke();
+    ctx.restore();
   }
 
   function redrawAnnotations() {
@@ -277,6 +285,19 @@ const EditModule = (() => {
         if (a._img) {
           overlayCtx.drawImage(a._img, a.x, a.y, a.width, a.height);
         }
+      } else if (a.type === 'eraser') {
+        overlayCtx.save();
+        overlayCtx.globalCompositeOperation = 'destination-out';
+        overlayCtx.beginPath();
+        overlayCtx.lineWidth = a.width * 3;
+        overlayCtx.lineCap = 'round';
+        overlayCtx.lineJoin = 'round';
+        if (a.path.length > 1) {
+          overlayCtx.moveTo(a.path[0].x, a.path[0].y);
+          for (let i = 1; i < a.path.length; i++) overlayCtx.lineTo(a.path[i].x, a.path[i].y);
+          overlayCtx.stroke();
+        }
+        overlayCtx.restore();
       }
     });
   }

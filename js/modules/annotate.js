@@ -182,6 +182,24 @@ const AnnotateModule = (() => {
         ctx.fillStyle = color;
         ctx.fillRect(Math.min(x1,x2), y1 - 14, Math.abs(x2-x1), 16);
         break;
+      case 'underline':
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.min(x1,x2), y1 + 2);
+        ctx.lineTo(Math.max(x1,x2), y1 + 2);
+        ctx.stroke();
+        break;
+      case 'strikethrough': {
+        const midY = (y1 + y2) / 2;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.min(x1,x2), midY);
+        ctx.lineTo(Math.max(x1,x2), midY);
+        ctx.stroke();
+        break;
+      }
       case 'rect':
         ctx.strokeStyle = color;
         ctx.lineWidth = 2;
@@ -202,17 +220,33 @@ const AnnotateModule = (() => {
   }
 
   function drawArrow(ctx, x1, y1, x2, y2, color) {
-    const angle = Math.atan2(y2-y1, x2-x1);
-    const headLen = 12;
-    ctx.beginPath();
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    if (length < 2) return;
+    const angle = Math.atan2(dy, dx);
+    const headLen = Math.min(24, Math.max(10, length * 0.3));
+    const headAngle = Math.PI / 7;
+
     ctx.strokeStyle = color;
+    ctx.fillStyle = color;
     ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // Shaft
+    ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
-    ctx.lineTo(x2 - headLen*Math.cos(angle-Math.PI/6), y2 - headLen*Math.sin(angle-Math.PI/6));
-    ctx.moveTo(x2, y2);
-    ctx.lineTo(x2 - headLen*Math.cos(angle+Math.PI/6), y2 - headLen*Math.sin(angle+Math.PI/6));
     ctx.stroke();
+
+    // Filled arrowhead triangle
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - headLen * Math.cos(angle - headAngle), y2 - headLen * Math.sin(angle - headAngle));
+    ctx.lineTo(x2 - headLen * Math.cos(angle + headAngle), y2 - headLen * Math.sin(angle + headAngle));
+    ctx.closePath();
+    ctx.fill();
   }
 
   function redraw() {
@@ -234,12 +268,13 @@ const AnnotateModule = (() => {
           overlayCtx.moveTo(a.x1, a.y1+2); overlayCtx.lineTo(a.x2, a.y1+2);
           overlayCtx.stroke();
           break;
-        case 'strikethrough':
+        case 'strikethrough': {
           const midY = (a.y1 + a.y2) / 2;
           overlayCtx.beginPath();
           overlayCtx.moveTo(a.x1, midY); overlayCtx.lineTo(a.x2, midY);
           overlayCtx.stroke();
           break;
+        }
         case 'rect':
           overlayCtx.strokeRect(Math.min(a.x1,a.x2), Math.min(a.y1,a.y2), Math.abs(a.x2-a.x1), Math.abs(a.y2-a.y1));
           break;
