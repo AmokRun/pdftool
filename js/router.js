@@ -33,8 +33,8 @@ const Router = (() => {
       if (proceed === false) return;
     }
 
-    // Update nav items
-    document.querySelectorAll('.nav-item').forEach(a => {
+    // Update nav items (sidebar + bottom nav)
+    document.querySelectorAll('.nav-item, .bn-item[data-route]').forEach(a => {
       a.classList.toggle('active', a.dataset.route === path);
     });
 

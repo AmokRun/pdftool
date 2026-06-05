@@ -250,17 +250,70 @@ const App = (() => {
     if (btn) btn.textContent = theme === 'dark' ? '☀' : '☾';
   }
 
-  // ---- Sidebar toggle ----
+  // ---- Sidebar toggle (desktop only) ----
   function initSidebar() {
     const sidebar = document.getElementById('sidebar');
     const btn = document.getElementById('sidebar-toggle');
-    const collapsed = Storage.getSetting('sidebar_collapsed', false);
-    if (collapsed) sidebar.classList.add('collapsed');
+    const isMobile = () => window.innerWidth <= 640;
 
-    btn.addEventListener('click', () => {
+    const collapsed = Storage.getSetting('sidebar_collapsed', false);
+    if (collapsed && !isMobile()) sidebar.classList.add('collapsed');
+
+    if (btn) btn.addEventListener('click', () => {
+      if (isMobile()) return;
       sidebar.classList.toggle('collapsed');
       Storage.setSetting('sidebar_collapsed', sidebar.classList.contains('collapsed'));
     });
+  }
+
+  // ---- Mobile navigation (drawer + bottom bar) ----
+  function initMobileNav() {
+    const sidebar   = document.getElementById('sidebar');
+    const backdrop  = document.getElementById('sidebar-backdrop');
+    const menuBtn   = document.getElementById('mobile-menu-btn');
+    const closeBtn  = document.getElementById('sidebar-close-btn');
+    const moreBtn   = document.getElementById('mobile-more-btn');
+    const bottomNav = document.getElementById('mobile-bottom-nav');
+
+    function openDrawer() {
+      sidebar.classList.add('mobile-open');
+      backdrop.classList.add('active');
+    }
+
+    function closeDrawer() {
+      sidebar.classList.remove('mobile-open');
+      backdrop.classList.remove('active');
+    }
+
+    menuBtn?.addEventListener('click', openDrawer);
+    closeBtn?.addEventListener('click', closeDrawer);
+    backdrop?.addEventListener('click', closeDrawer);
+    moreBtn?.addEventListener('click', openDrawer);
+
+    // Close drawer when any sidebar link is tapped on mobile
+    sidebar?.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        if (window.innerWidth <= 640) closeDrawer();
+      });
+    });
+
+    // Bottom nav link routing
+    bottomNav?.querySelectorAll('.bn-item[data-route]').forEach(item => {
+      item.addEventListener('click', e => {
+        e.preventDefault();
+        const route = item.dataset.route;
+        window.location.hash = route;
+        Router.navigate(route);
+      });
+    });
+
+    // Support swipe-to-close the drawer (swipe left)
+    let touchStartX = 0;
+    sidebar?.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+    sidebar?.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      if (dx < -60 && sidebar.classList.contains('mobile-open')) closeDrawer();
+    }, { passive: true });
   }
 
   // ---- Global file open button ----
@@ -399,6 +452,7 @@ const App = (() => {
   function init() {
     initTheme();
     initSidebar();
+    initMobileNav();
     initGlobalOpen();
     initSearch();
     initKeyboard();

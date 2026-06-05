@@ -20,6 +20,9 @@
 <!-- App Shell -->
 <div id="app">
 
+  <!-- Mobile sidebar backdrop -->
+  <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
   <!-- Sidebar -->
   <aside id="sidebar" class="sidebar">
     <div class="sidebar-header">
@@ -29,6 +32,7 @@
         <span class="logo-badge">Ultimate</span>
       </div>
       <button id="sidebar-toggle" class="icon-btn" title="Réduire">&#9776;</button>
+      <button id="sidebar-close-btn" class="icon-btn" title="Fermer">✕</button>
     </div>
 
     <nav class="sidebar-nav" id="main-nav">
@@ -122,6 +126,7 @@
     <!-- Top Bar -->
     <header class="topbar">
       <div class="topbar-left">
+        <button id="mobile-menu-btn" class="icon-btn" title="Menu" aria-label="Ouvrir le menu">&#9776;</button>
         <div class="breadcrumb" id="breadcrumb">
           <span>Tableau de bord</span>
         </div>
@@ -1047,6 +1052,30 @@
   loadNext(0);
 })();
 </script>
+
+<!-- Mobile bottom navigation (visible only on ≤ 640px) -->
+<nav class="mobile-bottom-nav" id="mobile-bottom-nav" aria-label="Navigation principale">
+  <a href="#dashboard" class="bn-item active" data-route="dashboard">
+    <span class="bn-icon">⊞</span>
+    <span class="bn-label">Accueil</span>
+  </a>
+  <a href="#edit" class="bn-item" data-route="edit">
+    <span class="bn-icon">✎</span>
+    <span class="bn-label">Éditer</span>
+  </a>
+  <a href="#annotate" class="bn-item" data-route="annotate">
+    <span class="bn-icon">✍</span>
+    <span class="bn-label">Annoter</span>
+  </a>
+  <a href="#signature" class="bn-item" data-route="signature">
+    <span class="bn-icon">✒</span>
+    <span class="bn-label">Signer</span>
+  </a>
+  <button class="bn-item" id="mobile-more-btn" aria-label="Tous les outils">
+    <span class="bn-icon">≡</span>
+    <span class="bn-label">Plus</span>
+  </button>
+</nav>
 
 <script src="js/storage.js"></script>
 <script src="js/ui.js"></script>

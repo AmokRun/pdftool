@@ -1481,3 +1481,57 @@ kbd {
   font-size: 9px;
   vertical-align: middle;
 }
+
+/* ============================================================
+   TOUCH & MOBILE IMPROVEMENTS
+   ============================================================ */
+
+/* Prevent accidental scroll on drawing canvases */
+canvas { touch-action: none; }
+
+/* Ensure interactive elements are tap-friendly on mobile */
+@media (max-width: 640px) {
+  button, .btn, .nav-item, .edit-tool-btn, .icon-btn,
+  select, input[type="range"], input[type="color"] {
+    min-height: 40px;
+  }
+
+  /* Slightly larger text in tool options on mobile */
+  .tool-sidebar label { font-size: 12px; }
+  .tool-sidebar .form-select,
+  .tool-sidebar .form-input { font-size: 14px; }
+
+  /* Edit tool buttons: bigger touch targets */
+  .edit-tool-btn {
+    min-width: 40px;
+    min-height: 40px;
+    font-size: 16px;
+  }
+
+  /* More compact quick tool buttons on mobile */
+  .quick-tool-btn { padding: 10px 6px; font-size: 12px; }
+  .quick-tools-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 8px !important; }
+
+  /* Privacy badge: icon only */
+  #privacy-badge .badge-text { display: none; }
+  #privacy-badge { padding: 3px 8px; border-radius: 0 0 8px 8px; }
+
+  /* Dashboard hero: compact */
+  .dash-hero { padding: 24px 18px !important; }
+  .dash-hero h1 { font-size: 20px; }
+  .dash-hero p  { font-size: 13px; }
+  .hero-actions { gap: 8px; flex-wrap: wrap; }
+
+  /* Toast notifications: above bottom nav */
+  .toast-container {
+    bottom: 68px; /* 56px nav + 12px gap */
+    right: 8px;
+    left: 8px;
+    max-width: none;
+  }
+
+  .toast { font-size: 12px; padding: 10px 12px; }
+
+  /* Smaller form elements */
+  .drop-zone.compact { padding: 12px; }
+}
