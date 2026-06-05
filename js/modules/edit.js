@@ -134,11 +134,15 @@ const EditModule = (() => {
 
     // Navigation
     const nav = document.createElement('div');
-    nav.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:10px;padding:10px;';
+    nav.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:10px;padding:10px;flex-wrap:wrap;';
     nav.innerHTML = `
       <button class="btn btn-ghost btn-sm" id="edit-prev-btn" ${currentPage <= 1 ? 'disabled' : ''}>← Préc</button>
       <span style="font-size:13px;color:var(--text-secondary)">Page ${currentPage} / ${totalPages}</span>
       <button class="btn btn-ghost btn-sm" id="edit-next-btn" ${currentPage >= totalPages ? 'disabled' : ''}>Suiv →</button>
+      <span style="margin-left:8px;color:var(--text-muted);font-size:12px">|</span>
+      <button class="btn btn-ghost btn-sm" id="edit-zoom-out">−</button>
+      <span id="edit-zoom-label" style="font-size:13px;color:var(--text-secondary);min-width:44px;text-align:center">${Math.round(scale/1.5*100)}%</span>
+      <button class="btn btn-ghost btn-sm" id="edit-zoom-in">+</button>
     `;
 
     area.appendChild(wrapper);
@@ -150,6 +154,8 @@ const EditModule = (() => {
     document.getElementById('edit-next-btn')?.addEventListener('click', async () => {
       if (currentPage < totalPages) { currentPage++; await renderPage(currentPage); }
     });
+    document.getElementById('edit-zoom-out')?.addEventListener('click', () => changeScale(-0.25));
+    document.getElementById('edit-zoom-in')?.addEventListener('click', () => changeScale(0.25));
 
     const ctx = mainCanvas.getContext('2d');
     await page.render({ canvasContext: ctx, viewport: pageViewport }).promise;
@@ -416,6 +422,23 @@ const EditModule = (() => {
     if (selectedAnnotIndex !== -1 && annotations[selectedAnnotIndex]?.page === currentPage) {
       drawSelectionIndicator(annotations[selectedAnnotIndex]);
     }
+  }
+
+  function changeScale(delta) {
+    const newScale = Math.max(0.5, Math.min(4.0, scale + delta));
+    if (newScale === scale) return;
+    const ratio = newScale / scale;
+    annotations.forEach(a => {
+      if (a.type === 'text' || a.type === 'stamp') {
+        a.x *= ratio; a.y *= ratio;
+      } else if (a.type === 'image') {
+        a.x *= ratio; a.y *= ratio; a.width *= ratio; a.height *= ratio;
+      } else if (a.type === 'draw' || a.type === 'eraser') {
+        a.path = a.path.map(p => ({ x: p.x * ratio, y: p.y * ratio }));
+      }
+    });
+    scale = newScale;
+    renderPage(currentPage);
   }
 
   function selectTool(tool, btnEl) {

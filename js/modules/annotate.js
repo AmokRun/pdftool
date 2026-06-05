@@ -104,11 +104,15 @@ const AnnotateModule = (() => {
     wrapper.appendChild(overlayCanvas);
 
     const nav = document.createElement('div');
-    nav.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:10px;padding:8px;';
+    nav.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:10px;padding:8px;flex-wrap:wrap;';
     nav.innerHTML = `
       <button class="btn btn-ghost btn-sm" id="ann-prev" ${n<=1?'disabled':''}>← Préc</button>
       <span style="font-size:13px;color:var(--text-secondary)">Page ${n}/${totalPages}</span>
       <button class="btn btn-ghost btn-sm" id="ann-next" ${n>=totalPages?'disabled':''}>Suiv →</button>
+      <span style="margin-left:8px;color:var(--text-muted);font-size:12px">|</span>
+      <button class="btn btn-ghost btn-sm" id="ann-zoom-out">−</button>
+      <span id="ann-zoom-label" style="font-size:13px;color:var(--text-secondary);min-width:44px;text-align:center">${Math.round(scale/1.5*100)}%</span>
+      <button class="btn btn-ghost btn-sm" id="ann-zoom-in">+</button>
     `;
     area.appendChild(wrapper);
     area.appendChild(nav);
@@ -119,6 +123,8 @@ const AnnotateModule = (() => {
     document.getElementById('ann-next')?.addEventListener('click', async () => {
       if (currentPage < totalPages) { currentPage++; await renderPage(currentPage); }
     });
+    document.getElementById('ann-zoom-out')?.addEventListener('click', () => changeScale(-0.25));
+    document.getElementById('ann-zoom-in')?.addEventListener('click', () => changeScale(0.25));
 
     await page.render({ canvasContext: base.getContext('2d'), viewport }).promise;
     setupEvents(overlayCanvas);
@@ -505,6 +511,23 @@ const AnnotateModule = (() => {
     annotations.splice(i, 1);
     redraw();
     updateList();
+  }
+
+  function changeScale(delta) {
+    const newScale = Math.max(0.5, Math.min(4.0, scale + delta));
+    if (newScale === scale) return;
+    const ratio = newScale / scale;
+    annotations.forEach(a => {
+      if (a.type === 'comment') {
+        a.x *= ratio; a.y *= ratio;
+      } else if (a.type === 'freehand') {
+        a.path = a.path.map(p => ({ x: p.x * ratio, y: p.y * ratio }));
+      } else {
+        a.x1 *= ratio; a.y1 *= ratio; a.x2 *= ratio; a.y2 *= ratio;
+      }
+    });
+    scale = newScale;
+    renderPage(currentPage);
   }
 
   function selectTool(tool, btnEl) {
