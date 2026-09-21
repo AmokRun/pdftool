@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PDF Toolbox Ultimate</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="mask-icon" href="favicon.svg" color="#0071E3" />
   <link rel="stylesheet" href="css/themes.css" />
   <link rel="stylesheet" href="css/layout.css" />
   <link rel="stylesheet" href="css/components.css" />
@@ -116,7 +118,10 @@
     <div class="sidebar-footer">
       <button id="theme-toggle" class="icon-btn" title="Changer le thème">☀</button>
       <button id="shortcuts-btn" class="icon-btn" title="Raccourcis clavier">⌨</button>
-      <span class="version">v1.0.0</span>
+      <div class="footer-meta">
+        <span class="version" id="app-version">v1.0.0</span>
+        <span class="credit">Créé par Amok</span>
+      </div>
     </div>
   </aside>
 
@@ -1080,6 +1085,7 @@
   </button>
 </nav>
 
+<script src="js/version.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/router.js"></script>

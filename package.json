@@ -1,0 +1,10 @@
+{
+  "name": "pdftool",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PDF Toolbox Ultimate — boîte à outils PDF 100% locale, créée par Amok.",
+  "scripts": {
+    "version:bump": "node scripts/bump-version.js",
+    "hooks:install": "git config core.hooksPath .githooks"
+  }
+}
