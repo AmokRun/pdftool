@@ -464,12 +464,24 @@ const App = (() => {
     const clearPdfBtn = document.getElementById('clear-pdf-btn');
     if (clearPdfBtn) clearPdfBtn.addEventListener('click', () => PDFState.clear());
 
+    initVersion();
+
     // Log startup
+    const v = window.APP_VERSION || { number: '1.0.0', build: 0, date: '' };
     console.log(
-      '%c PDF Toolbox Ultimate %c v1.0.0 — 100% Local',
+      `%c PDF Toolbox Ultimate %c v${v.number} — 100% Local`,
       'background:#4f6ef7;color:white;padding:4px 8px;border-radius:4px 0 0 4px',
       'background:#1a1d27;color:#8892b0;padding:4px 8px;border-radius:0 4px 4px 0'
     );
+  }
+
+  // ---- Version display (source: js/version.js) ----
+  function initVersion() {
+    const el = document.getElementById('app-version');
+    if (!el) return;
+    const v = window.APP_VERSION || { number: '1.0.0', build: 0, date: '' };
+    el.textContent = `v${v.number}`;
+    el.title = `Build ${v.build} — ${v.date}`;
   }
 
   return { init, renderDashboard: initDashboard, escapeHtml, TOOLS };

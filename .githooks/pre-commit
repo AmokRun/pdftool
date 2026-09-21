@@ -1,0 +1,6 @@
+#!/bin/sh
+# Bumpe automatiquement le numéro de version à chaque commit.
+# Activation (une seule fois par clone) : git config core.hooksPath .githooks
+root="$(git rev-parse --show-toplevel)"
+node "$root/scripts/bump-version.js" || exit 0
+git add "$root/js/version.js"
